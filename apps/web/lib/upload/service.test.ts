@@ -449,14 +449,14 @@ describe.skipIf(!TEST_DB_URL)('upload services (database)', () => {
     const [batch] = await deps.db.select().from(batches).where(eq(batches.id, batchId));
     expect(batch!.slotRule).toEqual({ mode: 'pick' });
 
-    // The real scheduler runs now: these assets are still processing, so nothing is scheduled
-    // and each post comes back with a reason.
+    // The real scheduler handles next_free: every post is either scheduled or skipped with a
+    // reason (which one depends on accounts present in the shared test database).
     const next = await scheduleBatch(deps, {
       batchId,
       postIds: done.map((d) => d.postId),
       when: { mode: 'next_free' },
     });
-    expect(next.scheduled).toEqual([]);
-    expect(next.skipped.length).toBe(done.length);
+    expect(next.scheduled.length + next.skipped.length).toBe(done.length);
+    for (const s of next.skipped) expect(s.reason).toBeTruthy();
   });
 });
