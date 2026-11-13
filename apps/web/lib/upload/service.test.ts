@@ -13,7 +13,6 @@ import {
   socialAccounts,
   type Platform,
 } from '@app/db';
-import { NotImplementedError } from '@app/core/deps';
 import { loadAccounts, loadBatchView, loadUploadPageData } from './batch-view';
 import { LOCAL_CHUNK_BYTES } from './constants';
 import {
@@ -450,13 +449,14 @@ describe.skipIf(!TEST_DB_URL)('upload services (database)', () => {
     const [batch] = await deps.db.select().from(batches).where(eq(batches.id, batchId));
     expect(batch!.slotRule).toEqual({ mode: 'pick' });
 
-    // The scheduling module is a stub in this worktree: its error reaches the action layer.
-    await expect(
-      scheduleBatch(deps, {
-        batchId,
-        postIds: done.map((d) => d.postId),
-        when: { mode: 'next_free' },
-      }),
-    ).rejects.toBeInstanceOf(NotImplementedError);
+    // The real scheduler runs now: these assets are still processing, so nothing is scheduled
+    // and each post comes back with a reason.
+    const next = await scheduleBatch(deps, {
+      batchId,
+      postIds: done.map((d) => d.postId),
+      when: { mode: 'next_free' },
+    });
+    expect(next.scheduled).toEqual([]);
+    expect(next.skipped.length).toBe(done.length);
   });
 });
