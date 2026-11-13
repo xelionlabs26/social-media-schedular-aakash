@@ -1,0 +1,19 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm
+    command: sleep infinity
+    volumes:
+      - ../..:/workspaces:cached
+    environment:
+      DATABASE_URL: postgres://scheduler:scheduler@db:5432/scheduler
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: scheduler
+      POSTGRES_DB: scheduler
+    volumes:
+      - devpg:/var/lib/postgresql
+volumes:
+  devpg:

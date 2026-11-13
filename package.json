@@ -1,0 +1,28 @@
+{
+  "name": "social-media-scheduler",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @app/web --filter @app/worker dev",
+    "dev:web": "pnpm --filter @app/web dev",
+    "dev:worker": "pnpm --filter @app/worker dev",
+    "build": "pnpm --filter @app/web build",
+    "start:web": "pnpm --filter @app/web start",
+    "start:worker": "pnpm --filter @app/worker start",
+    "typecheck": "pnpm -r --no-bail typecheck",
+    "test": "pnpm -r --no-bail test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @app/db generate",
+    "db:migrate": "pnpm --filter @app/db migrate",
+    "hash-password": "pnpm --filter @app/core exec tsx scripts/hash-password.ts"
+  },
+  "devDependencies": {
+    "prettier": "3.10.1",
+    "typescript": "5.9.3"
+  }
+}

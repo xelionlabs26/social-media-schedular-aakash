@@ -1,0 +1,12 @@
+{
+  "name": "Social Media Scheduler",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "app", "onAutoForward": "openBrowser" } },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "customizations": {
+    "vscode": { "extensions": ["bradlc.vscode-tailwindcss", "esbenp.prettier-vscode"] }
+  }
+}
