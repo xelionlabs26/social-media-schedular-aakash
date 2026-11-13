@@ -43,7 +43,11 @@ export async function generateForAsset(
   throw new NotImplementedError('ai.generateForAsset');
 }
 
-/** Rewrites one field of one target (Regenerate / ⋯ menu), saves it and returns the new value. */
+/**
+ * Rewrites one field of one target (Regenerate / ⋯ menu) and returns the new value. Does NOT
+ * save: the caller saves it through scheduling.updateTargetText (which also handles targets that
+ * were already handed to a platform).
+ */
 export async function refineField(
   _deps: ServiceDeps,
   _input: { targetId: string; field: RefineField; action: RefineAction },

@@ -214,14 +214,11 @@ export const appSettings = pgTable(
     exampleCaptions: text('example_captions').notNull().default(''),
     bannedWords: text('banned_words').notNull().default(''),
     emojiLevel: text('emoji_level').$type<'none' | 'light' | 'heavy'>().notNull().default('light'),
-    captionScript: jsonb('caption_script')
-      .$type<PerPlatform<CaptionScript>>()
-      .notNull()
-      .default({
-        instagram: 'hinglish_roman',
-        youtube: 'hinglish_roman',
-        facebook: 'hinglish_roman',
-      }),
+    captionScript: jsonb('caption_script').$type<PerPlatform<CaptionScript>>().notNull().default({
+      instagram: 'hinglish_roman',
+      youtube: 'hinglish_roman',
+      facebook: 'hinglish_roman',
+    }),
     hashtagCounts: jsonb('hashtag_counts')
       .$type<PerPlatform<HashtagRange>>()
       .notNull()
@@ -468,6 +465,11 @@ export const posts = pgTable(
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     /** When the owner clicked Schedule (explicit consent, required by YouTube policy). */
     approvedAt: timestamp('approved_at', { withTimezone: true }),
+    /**
+     * Soft delete: set by "Delete"; the engine cancels anything already handed to a platform,
+     * then removes the row and its media. Hidden from the UI immediately.
+     */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     version: integer('version').notNull().default(0),
     ...timestamps,
   },
@@ -521,6 +523,11 @@ export const postTargets = pgTable(
     /** Final remote id: YouTube videoId, IG media id, FB video id. */
     remoteMediaId: text('remote_media_id'),
     remoteUrl: text('remote_url'),
+    /**
+     * Text/time/options changed after the target was handed to the platform (status preparing or
+     * prepared). The engine pushes the change (publisher.update) or cancels and prepares again.
+     */
+    needsSync: boolean('needs_sync').notNull().default(false),
     attempts: integer('attempts').notNull().default(0),
     nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }),
     lockedUntil: timestamp('locked_until', { withTimezone: true }),

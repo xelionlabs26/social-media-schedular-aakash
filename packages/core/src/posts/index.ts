@@ -189,7 +189,7 @@ export async function getPostCards(
   filter: PostCardFilter = {},
   now = new Date(),
 ): Promise<PostCard[]> {
-  const where: SQL[] = [];
+  const where: SQL[] = [isNull(posts.deletedAt)];
   if (filter.postIds?.length) where.push(inArray(posts.id, filter.postIds));
   if (filter.batchId) where.push(eq(posts.batchId, filter.batchId));
   if (filter.unscheduled) where.push(isNull(posts.scheduledAt));
@@ -278,7 +278,12 @@ export async function getAttentionTargets(db: Db) {
     .from(postTargets)
     .innerJoin(posts, eq(posts.id, postTargets.postId))
     .innerJoin(mediaAssets, eq(mediaAssets.id, posts.assetId))
-    .where(inArray(postTargets.status, ['failed', 'missed', 'needs_reauth']))
+    .where(
+      and(
+        inArray(postTargets.status, ['failed', 'missed', 'needs_reauth']),
+        isNull(posts.deletedAt),
+      ),
+    )
     .orderBy(asc(postTargets.scheduledAt))
     .limit(50);
 }
