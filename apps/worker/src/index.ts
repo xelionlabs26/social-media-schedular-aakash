@@ -12,7 +12,8 @@ import { createLogger } from '@app/core/log';
 import { getSettings } from '@app/core/settings';
 import { createEngine } from '@app/core/scheduling';
 import { createIntegrations } from './integrations';
-import { createHandlers } from './handlers';
+import { createHandlers, type JobMeta } from './handlers';
+import { WorkerJobs } from './jobs';
 
 const log = createLogger('worker');
 
@@ -36,11 +37,8 @@ async function main() {
   boss.on('error', (err) => log.error('pg-boss error', { err }));
   await boss.start();
 
-  const deps = defaultDeps({
-    db: getDb(env.DATABASE_URL),
-    log,
-    jobs: { send: (q, d, o) => boss.send(q, d as object, o ?? {}) },
-  });
+  const jobs = new WorkerJobs(boss, log);
+  const deps = defaultDeps({ db: getDb(env.DATABASE_URL), log, jobs: jobs.sender });
   const settings = await getSettings(deps.db);
 
   // Queues (idempotent).
@@ -68,16 +66,26 @@ async function main() {
   const handlers = createHandlers(deps, engine);
 
   for (const [name, handler] of Object.entries(handlers) as Array<
-    [QueueName, (d: unknown) => Promise<void>]
+    [QueueName, (d: unknown, meta?: JobMeta) => Promise<void>]
   >) {
     await boss.work(
       name,
-      { localConcurrency: CONCURRENCY[name] ?? 1, pollingIntervalSeconds: 2 },
-      async (jobs) => {
-        for (const job of jobs) {
+      {
+        localConcurrency: CONCURRENCY[name] ?? 1,
+        pollingIntervalSeconds: 2,
+        includeMetadata: true,
+      },
+      async (batch) => {
+        for (const job of batch) {
           const started = Date.now();
+          const meta: JobMeta = {
+            id: job.id,
+            retryCount: job.retryCount,
+            retryLimit: job.retryLimit,
+            sourceName: job.sourceName,
+          };
           try {
-            await handler(job.data);
+            await jobs.run(job, () => handler(job.data, meta));
             log.debug('job done', { queue: name, id: job.id, ms: Date.now() - started });
           } catch (err) {
             log.warn('job failed (will retry if attempts remain)', {
