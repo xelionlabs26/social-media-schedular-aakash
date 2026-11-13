@@ -25,7 +25,7 @@ import {
 } from './schemas';
 
 const PLATFORMS_UI: Platform[] = ['instagram', 'youtube', 'facebook'];
-const STT_ORDER: SttProvider[] = ['openai', 'deepgram', 'sarvam', 'assemblyai', 'mock'];
+const STT_ORDER: SttProvider[] = ['deepgram', 'openai', 'sarvam', 'assemblyai', 'mock'];
 
 const EFFORT_HINT: Record<(typeof AI_EFFORTS)[number], string> = {
   low: 'Low (default, fastest)',

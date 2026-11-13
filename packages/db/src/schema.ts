@@ -229,7 +229,7 @@ export const appSettings = pgTable(
       }),
     aiModel: text('ai_model').notNull().default('claude-sonnet-5-5'),
     aiEffort: text('ai_effort').$type<'low' | 'medium' | 'high'>().notNull().default('low'),
-    sttProvider: text('stt_provider').$type<SttProvider>().notNull().default('openai'),
+    sttProvider: text('stt_provider').$type<SttProvider>().notNull().default('deepgram'),
     youtubeDefaults: jsonb('youtube_defaults').$type<YoutubeDefaults>().notNull().default({
       privacy: 'public',
       categoryId: '22',

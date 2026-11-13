@@ -492,7 +492,7 @@ After M7 you use it daily for a week, and then we fix what annoys you.
 | # | Question | Answer |
 |---|---|---|
 | 1 | Time zone | ✅ **IST** (Asia/Kolkata) |
-| 2 | Spoken language | ✅ **Hindi + English mixed** |
+| 2 | Spoken language | ✅ **Hindi + English mixed** · Speech-to-text: ✅ **Deepgram Nova-3** (multilingual), owner's choice; others stay selectable in Settings |
 | 3 | Typical videos | ✅ **Vertical, ~60 s** |
 | 4 | Title pattern | ✅ **Viral story hook, no links, no hashtags** |
 | 5 | Fixed text per platform | ✅ **None** (no links) |
