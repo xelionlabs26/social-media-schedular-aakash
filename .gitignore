@@ -12,3 +12,6 @@ coverage
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# Agent worktrees (temporary)
+.claude/worktrees/
