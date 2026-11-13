@@ -18,10 +18,13 @@ See [PLAN.md](./PLAN.md) for the full design, the platform rules and the roadmap
 ### Option A: GitHub Codespaces (nothing to install)
 
 1. On GitHub: **Code → Codespaces → Create codespace** on this branch.
-2. Wait for setup (installs ffmpeg, dependencies, Postgres and creates `.env`).
-3. Set your login: `pnpm hash-password 'your password'`, then paste `OWNER_EMAIL` and
-   `OWNER_PASSWORD_HASH` into `.env`.
-4. `pnpm dev` and open the forwarded port 3000.
+2. Wait for setup (installs ffmpeg, dependencies and Postgres, creates `.env` and a login). The
+   app then starts by itself and opens in a new browser tab (port 3000).
+3. Your login is printed in the terminal and saved in `.data/login.txt`. To choose your own
+   password: `pnpm hash-password 'your password'` and replace `OWNER_PASSWORD_HASH` in `.env`.
+
+The app's address looks like `https://<codespace-name>-3000.app.github.dev` and only you
+(signed in to GitHub) can open it.
 
 Codespaces stop when idle, so they're for trying the app, not for running a schedule. Scheduled
 Instagram posts need an always-on server (PLAN.md §6: Railway, ~$10–15/month).

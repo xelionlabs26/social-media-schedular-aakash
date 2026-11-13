@@ -6,6 +6,7 @@
   "forwardPorts": [3000],
   "portsAttributes": { "3000": { "label": "app", "onAutoForward": "openBrowser" } },
   "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "bash .devcontainer/start.sh",
   "customizations": {
     "vscode": { "extensions": ["bradlc.vscode-tailwindcss", "esbenp.prettier-vscode"] }
   }

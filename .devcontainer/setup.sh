@@ -13,7 +13,19 @@ if [ ! -f .env ]; then
   if [ -n "${CODESPACE_NAME:-}" ]; then
     sed -i "s|^APP_URL=.*|APP_URL=https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}|" .env
   fi
-  echo
-  echo "Created .env. Set your login with:  pnpm hash-password 'your password'"
-  echo "then paste OWNER_EMAIL and OWNER_PASSWORD_HASH into .env and run:  pnpm dev"
 fi
+
+# A login so the app can be opened straight away. Saved to .data/login.txt (not committed).
+# To pick your own password later: pnpm hash-password 'new password', then replace the line in .env.
+if ! grep -q "^OWNER_PASSWORD_HASH=." .env; then
+  password="$(openssl rand -base64 24 | tr -d '\n/+=' | cut -c1-16)"
+  hash_line="$(pnpm --silent hash-password "$password" | grep '^OWNER_PASSWORD_HASH=')"
+  HASH_LINE="$hash_line" awk '/^OWNER_PASSWORD_HASH=/ { print ENVIRON["HASH_LINE"]; next } { print }' .env > .env.tmp
+  mv .env.tmp .env
+  mkdir -p .data
+  printf 'Email:    %s\nPassword: %s\n' "$(grep '^OWNER_EMAIL=' .env | cut -d= -f2-)" "$password" > .data/login.txt
+  chmod 600 .data/login.txt
+fi
+echo
+echo "Setup done. Your login:"
+cat .data/login.txt 2>/dev/null || echo "(see OWNER_EMAIL in .env)"

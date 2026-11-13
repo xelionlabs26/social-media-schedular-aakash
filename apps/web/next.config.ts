@@ -8,14 +8,29 @@ try {
   /* no .env file */
 }
 
+/**
+ * The public address from APP_URL. Behind a forwarding proxy (GitHub Codespaces, some hosts) the
+ * request's Host header is the internal one (localhost:3000), so Next.js would reject server
+ * actions (login, saving text) from the public address unless it is listed here.
+ */
+const publicUrl = (() => {
+  try {
+    return process.env.APP_URL ? new URL(process.env.APP_URL) : undefined;
+  } catch {
+    return undefined;
+  }
+})();
+
 const nextConfig: NextConfig = {
   transpilePackages: ['@app/core', '@app/db'],
   serverExternalPackages: ['pg', 'pg-boss', '@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
   poweredByHeader: false,
+  allowedDevOrigins: publicUrl ? [publicUrl.hostname] : [],
   experimental: {
     serverActions: {
       // Server actions only carry text; videos go to storage with signed URLs.
       bodySizeLimit: '2mb',
+      allowedOrigins: publicUrl ? [publicUrl.host] : [],
     },
   },
   async headers() {
