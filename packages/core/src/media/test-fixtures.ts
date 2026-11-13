@@ -94,6 +94,9 @@ export async function makeFixtures(): Promise<Fixtures> {
     'bt2020',
     '-colorspace',
     'bt2020nc',
+    // Some ffmpeg builds only write colour tags into H.264 through the encoder's VUI fields.
+    '-x264-params',
+    'colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc',
     ...aac,
     f.hdr10bit,
   ]);

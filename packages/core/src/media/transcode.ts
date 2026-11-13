@@ -208,7 +208,20 @@ export function normalizeArgs(
     // Keyframe every 2 s: platforms re-encode anyway, but regular GOPs make their seeking happy.
     '-g',
     String(NORMALIZED_FPS * 2),
-    ...(hdr ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709'] : []),
+    // Tag the SDR result. The generic options alone are not written into the H.264 stream by
+    // every ffmpeg build (seen on GitHub's runner), so also set the encoder's own VUI fields.
+    ...(hdr
+      ? [
+          '-color_primaries',
+          'bt709',
+          '-color_trc',
+          'bt709',
+          '-colorspace',
+          'bt709',
+          '-x264-params',
+          'colorprim=bt709:transfer=bt709:colormatrix=bt709',
+        ]
+      : []),
     ...(probe.hasAudio
       ? ['-c:a', 'aac', '-profile:a', 'aac_low', '-ar', '48000', '-ac', '2', '-b:a', '128k']
       : ['-an']),
