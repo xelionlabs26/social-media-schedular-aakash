@@ -26,9 +26,14 @@ export const AI_MODELS = [
     id: 'claude-opus-5-5',
     label: 'Claude Opus 5.5',
     cost: '~5–8¢ per video',
-    note: 'best writing',
+    note: 'best writing, ~2× the cost',
   },
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', cost: '~3–4¢ per video', note: '' },
+  {
+    id: 'claude-sonnet-5-5',
+    label: 'Claude Sonnet 5.5',
+    cost: '~3–4¢ per video',
+    note: 'good writing, half the cost',
+  },
   { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', cost: '~0.1–0.2¢ per video', note: '' },
 ] as const;
 export type AiModelId = (typeof AI_MODELS)[number]['id'];

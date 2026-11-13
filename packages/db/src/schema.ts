@@ -227,7 +227,7 @@ export const appSettings = pgTable(
         youtube: { min: 2, max: 3 },
         facebook: { min: 0, max: 0 },
       }),
-    aiModel: text('ai_model').notNull().default('claude-opus-5-5'),
+    aiModel: text('ai_model').notNull().default('claude-sonnet-5-5'),
     aiEffort: text('ai_effort').$type<'low' | 'medium' | 'high'>().notNull().default('low'),
     sttProvider: text('stt_provider').$type<SttProvider>().notNull().default('openai'),
     youtubeDefaults: jsonb('youtube_defaults').$type<YoutubeDefaults>().notNull().default({

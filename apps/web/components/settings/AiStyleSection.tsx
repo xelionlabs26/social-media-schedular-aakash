@@ -221,7 +221,7 @@ export function AiStyleSection({
                   <span className="text-xs text-muted">
                     {m.cost}
                     {m.note ? `, ${m.note}` : ''}
-                    {m.id === 'claude-opus-5-5' ? ' (default)' : ''}
+                    {m.id === 'claude-sonnet-5-5' ? ' (default)' : ''}
                   </span>
                 </span>
               </label>

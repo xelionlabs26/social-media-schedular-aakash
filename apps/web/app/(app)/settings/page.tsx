@@ -52,7 +52,7 @@ export default async function SettingsPage({
   // An unknown stored model (e.g. retired) falls back to the default in the form.
   const aiModel: AiModelId = AI_MODELS.some((m) => m.id === s.aiModel)
     ? (s.aiModel as AiModelId)
-    : 'claude-opus-5-5';
+    : 'claude-sonnet-5-5';
 
   return (
     <div className="space-y-4">

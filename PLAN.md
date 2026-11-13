@@ -225,7 +225,7 @@ Claude's API takes **text and images only**, with no video and no audio (checked
 7. Apply templates (only if you turned one on; off by default) → check limits in code → save as drafts.
 
 ### 4.3 Model and settings
-- **Model:** `claude-opus-5-5` (default; best writing quality, ~$0.05–0.08 per video). Settings → AI style lets you switch to `claude-sonnet-5-5` (~$0.03–0.04) or `claude-haiku-5-5` (~$0.001–0.002), and shows this month's total AI cost (from the API's usage numbers).
+- **Model:** `claude-sonnet-5-5` (default since 13 Nov 2026, owner's choice to save cost; ~$0.03–0.04 per video). Settings → AI style lets you switch to `claude-opus-5-5` (best writing, ~$0.05–0.08) or `claude-haiku-5-5` (~$0.001–0.002), and shows this month's total AI cost (from the API's usage numbers).
 - `output_config.effort: "low"` (raise to `"medium"` if copy feels weak). No `temperature` and no `thinking` parameter (Opus 5.5 rejects disabling thinking).
 - **Structured outputs** (`output_config.format` with a JSON schema): on a normal finish the reply matches the schema. On `stop_reason` `refusal` or `max_tokens` it may not, so we check `stop_reason` before parsing and catch parse/validation errors (`refusal` → "Needs attention: write text manually"; `max_tokens` → retry with more room). `max_tokens` ≈ 8,000–16,000 so hidden thinking can't cut off the JSON.
 - **Refusal fallback:** `fallbacks: "default"` (beta header `server-side-fallback-2026-07-01`) is sent **only** on Opus 5.5 / Sonnet 5.5 calls. Haiku 5.5 doesn't support it, so there we retry manually once.
@@ -280,8 +280,8 @@ Anthropic has no STT. Your videos mix **Hindi and English in the same sentence**
 ### 4.9 AI cost per video (8–12 frames + 500-word transcript + ~800 output tokens)
 | Model | Per video | ~60 videos/month |
 |---|---|---|
-| **Opus 5.5** (default) | ~$0.05–0.08 | ~$3–5 (+ regenerates) |
-| Sonnet 5.5 | ~$0.03–0.04 | ~$2 |
+| Opus 5.5 | ~$0.05–0.08 | ~$3–5 (+ regenerates) |
+| **Sonnet 5.5** (default) | ~$0.03–0.04 | ~$2 |
 | Haiku 5.5 | ~$0.001–0.002 | ~$0.10 |
 
 (A later "overnight" mode on the Message Batches API would halve these. It's left out of v1 to keep the app simple.)
@@ -510,7 +510,7 @@ After M7 you use it daily for a week, and then we fix what annoys you.
 6. Originals deleted **7 days after** all platforms have published.
 7. Missed Instagram post: **publish late if within 2 h, otherwise ask me**.
 8. Alerts: **Telegram**.
-9. Claude model: **Opus 5.5** (~5–8¢/video, best writing). Switchable to Sonnet 5.5 (~3–4¢) or Haiku 5.5 (~0.1–0.2¢) in Settings.
+9. Claude model: ✅ **Sonnet 5.5** (~3–4¢/video, owner's choice). Switchable to Opus 5.5 (~5–8¢, best writing) or Haiku 5.5 (~0.1–0.2¢) in Settings.
 10. Hosting: **Railway**, about $10–15/month.
 
 ### C. Content for good captions
@@ -527,7 +527,7 @@ After M7 you use it daily for a week, and then we fix what annoys you.
 |---|---|
 | Railway (web + worker + Postgres) | ~$10–15 |
 | Cloudflare R2 storage + downloads | ~$0 (free tier: 10 GB stored, zero egress) |
-| Claude (Opus 5.5) | ~$3–6 incl. regenerates (Haiku: ~$0.10) |
+| Claude (Sonnet 5.5) | ~$2–3 incl. regenerates (Opus: ~$3–6, Haiku: ~$0.10) |
 | Speech-to-text (M1 test winner, ~1 min/video; all candidates cost about the same) | ~$0.30 |
 | Domain | ~$1 |
 | Telegram / Google / Meta APIs | $0 |
