@@ -9,10 +9,10 @@
 | | |
 |---|---|
 | **What it does** | You upload one video or many. The app "watches" each one (pulls key frames and transcribes the speech). Claude writes the text for each platform. You check or edit it, choose platforms and a time, and the app publishes. |
-| **Platforms** | **Instagram Reels**, **YouTube Shorts**, **Facebook Page** (Reels, or normal videos for longer clips). |
-| **Text per platform** | Instagram: caption + hashtags. YouTube: title + description + tags. Facebook: post text (+ title for normal videos). |
-| **Default title** | You set a template once (e.g. `{ai_title} \| My Vlog #{n}`), and it applies to every video. Choose *AI only*, *Template only* (same for all) or *Template + AI*. |
-| **Editing** | Every AI field can be edited. Each field has a **Regenerate** button and a small **⋯** menu (Shorter, Longer, More casual, More formal, Use template). Light video edits: trim, cover frame, fit to 9:16. |
+| **Platforms** | **Instagram Reels**, **YouTube Shorts**, **Facebook Page Reels** (your ~60 s vertical videos fit all three). |
+| **Text per platform** | Instagram: caption. YouTube: title + description + tags. Facebook: post text. |
+| **Default title** | Claude writes a **viral, story-based title** for every video: a hook taken from the story, with **no links and no hashtags**. (A fixed-text template exists in Settings if you ever want one, but it's off by default.) |
+| **Editing** | **Text editing only in v1.** Every AI field can be edited, and each field has a **Regenerate** button and a small **⋯** menu (Shorter, Longer, More casual, More formal, More viral). No video editing: videos are posted as uploaded. |
 | **Screens** | 3 screens + 1 slide-in editor: **Upload**, **Calendar**, **Settings**, and the **Post editor** drawer. |
 | **Scheduling** | YouTube and Facebook have their **own built-in schedulers**. We upload early and they publish at the time, even if our server is down. Instagram's API has **no scheduler**, so our app publishes at the exact minute. |
 | **APIs needed** | Anthropic (writing), one speech-to-text service (Claude can read images but cannot hear audio), YouTube Data API, Meta Graph API (one Meta app covers both Facebook and Instagram). Plus file storage (Cloudflare R2) and hosting (Railway). |
@@ -25,12 +25,16 @@
 4. **Google login setup:** the Google "OAuth consent screen" must be set to **In production**. If it stays in "Testing", YouTube access dies every 7 days.
 5. **Nothing posts by itself.** Every post goes out only after you click **Schedule** (YouTube's rules require your explicit OK for each upload).
 
-**How I read your request** (please correct me if any of these is wrong):
-- "real video" = your own Reels/Shorts-style videos (mostly vertical).
-- "if I want to edit, I can do that" = you can edit every AI-written text, and also do **light** video edits (trim, cover frame, fit to 9:16). If you don't need video trimming in v1, we drop milestone M7's editing part and save time.
-- "video video" with the Anthropic API = Claude understands the **video content** (via frames + transcript) to write the text.
-- "use the scheduler in the platform" = use YouTube's and Facebook's **own** schedulers where they exist. Instagram's API has none, so our app does that part.
-- "select the scheduler and platform as per my requirement" = per video (or per batch) you choose which platforms and when.
+### 0.1 Your decisions so far (13 Nov 2026)
+| Topic | Decision |
+|---|---|
+| Time zone | **IST** (`Asia/Kolkata`). All times in the app are shown in IST. |
+| Spoken language | **Hindi + English, mixed in the same video.** Speech-to-text must handle code-switching, so M1 starts with a short test of 3–4 services on your clips (§4.8). |
+| Videos | **Vertical, ~60 seconds.** Fits Instagram Reels, YouTube Shorts and Facebook Reels (3–90 s) without conversion. Clips **over 60 s** get a warning because YouTube blocks Shorts over 1 minute that carry any music copyright claim. |
+| Title | **No links, no hashtags.** Only a viral hook from the video's story, written by Claude. |
+| App name | Something about social media scheduling, without platform names. Name ideas are in §11 B1. |
+| Video editing | **None in v1.** Only text editing. (Trim, crop and cover picker moved to "later".) |
+| Request reading | Confirmed: your own vertical videos; Claude understands the video content (frames + transcript); YouTube/Facebook use their own schedulers, Instagram is scheduled by our app; you choose platforms and time per video or per batch. |
 
 ---
 
@@ -39,17 +43,17 @@
 ### In v1
 - Upload a single video or a batch (drag and drop; tested with 50+ files).
 - Auto-generate per-platform text from the video content (frames + transcript + your notes).
-- Default templates per platform (title/caption/description pattern, fixed footer, fixed hashtags).
-- Edit any text, with live character counters and limit checks.
+- Viral, story-based titles by default; an optional fixed-text template per platform (off by default).
+- Edit any text, with live character counters and limit checks. **Text editing only, with no video editing.**
 - Choose platforms per video: [Instagram] [YouTube] [Facebook].
 - Schedule: *Next free slot*, *Pick date & time*, or *Save as draft*.
 - Calendar (Week / Month / List), drag to reschedule, failures flagged with a fix button.
-- Light edits: trim start/end, choose cover frame, fit or crop to 9:16.
+- Automatic cover for Instagram: Claude picks the most eye-catching frame (no UI).
 - Alerts when something fails (Telegram or email).
 - Runs for **one owner only**, with its own login.
 
 ### Not in v1 (can be added later)
-Analytics/insights, comments/DMs, Stories, TikTok/X/LinkedIn, multiple accounts per platform, multiple named template sets (e.g. one per series), teams/approvals, recurring/recycled posts, burned-in subtitles, music, filters, CSV import, "overnight" AI mode at half price (Message Batches), mobile app.
+**Video editing (trim, crop/fit, cover picker, custom thumbnails)**, analytics/insights, comments/DMs, Stories, TikTok/X/LinkedIn, multiple accounts per platform, multiple named template sets (e.g. one per series), teams/approvals, recurring/recycled posts, burned-in subtitles, music, filters, CSV import, "overnight" AI mode at half price (Message Batches), mobile app.
 
 ---
 
@@ -63,7 +67,7 @@ Analytics/insights, comments/DMs, Stories, TikTok/X/LinkedIn, multiple accounts 
 | Video rules | 3 s–15 min, ≤300 MB, MP4/MOV, H.264/HEVC, AAC 48 kHz, 23–60 fps, ≤1920 px wide, 9:16 recommended | Counts as a Short if **≤3 min** and square/vertical (no `#Shorts` needed, no "isShort" flag) | Reels: **3–90 s**, 540×960 min, 24–60 fps, aspect between 16:9 and 9:16 (9:16 best). Longer clips go up as a normal Page video (≤40 min, ≤2 GB) |
 | Text rules | Caption ≤2,200 chars, ≤20 @mentions. Hashtags: **keep ≤5** (Instagram announced a 5-hashtag cap in Dec 2025; the API docs still say 30) | Title ≤100 chars, no `<` `>`. Description ≤**5,000 bytes** (Hindi script uses 3 bytes/char, emoji 4). Tags ≤500 chars total | Description (hashtags OK); title for normal videos |
 | Daily limit | 50–100 API posts / 24 h (docs disagree, so we read it live from `content_publishing_limit`); 400 containers / 24 h | **100 uploads/day** per Google project (own quota bucket since Jun 2026), plus a hidden per-channel limit | **30 API Reels / 24 h** per Page |
-| Cover image | `cover_url` (JPEG) or `thumb_offset` (ms) | `thumbnails.set` works for Shorts **since 3 Nov 2026** (after processing, phone-verified channel). Best-effort | `POST /{video-id}/thumbnails` (extra permission) |
+| Cover image | `cover_url` (JPEG) or `thumb_offset` (ms). **v1: automatic `thumb_offset` (Claude's pick)** | `thumbnails.set` works for Shorts **since 3 Nov 2026** (after processing, phone-verified channel). **v1: not used** | `POST /{video-id}/thumbnails` (extra permission). **v1: not used** |
 | Login token life | Via Facebook Login: Page token doesn't expire, but Instagram permissions need re-confirming after ~90 days of inactivity | Refresh token lasts while the app is "In production" (unused 6 months = dies) | Page token has no expiry date (dies on password change or revoke). Any permission unused for 90 days may expire, so the daily check verifies permissions too |
 | App review needed? | No. Standard Access covers accounts you own or manage (you are the app admin) | No Google verification needed for personal use (<100 users). You click through an "unverified app" warning once | No (same as Instagram) |
 
@@ -86,12 +90,12 @@ Design rule: **one video = one card**. The AI fills the fields without being ask
 1. **Upload** (home): drop zone, the batch settings bar, and one card per video.
 2. **Calendar:** Week / Month / List. The List view with status filters (§3.9, plus "Not scheduled yet") also works as your video library.
 3. **Settings:** one page with sections: Connected accounts · Posting times · Templates · AI style (incl. model choice and this month's AI cost) · Notifications · Defaults.
-4. **Post editor** (slides in from the right, opened from any card): platform tabs, text fields, preview, trim/cover, schedule, and a small **History** section (what the app tried and what each platform answered).
+4. **Post editor** (slides in from the right, opened from any card): video player, platform tabs, text fields, preview, schedule, and a small **History** section (what the app tried and what each platform answered).
 
 ### 3.2 Flow A: bulk upload (main flow)
 1. Drop 1–N videos. Cards appear immediately (thumbnail, length, shape, warnings) and upload in the background, 3–4 at a time, with per-file progress and retry.
 2. Each card shows **Processing** with the current step (Uploading 64% → Analyzing → Writing), then becomes a **Draft** with all texts filled in (about 20–60 s per video).
-3. In the top bar, set once for all: **Post to** [IG] [YT] [FB] · **Template:** Default (edit) · **When:** (o) Next free slot from [date] / ( ) Pick date & time on each card / ( ) Save as drafts, with a small "Change posting times" link to Settings. Then **Apply to all**. A confirmation lists exactly which cards will change.
+3. In the top bar, set once for all: **Post to** [IG] [YT] [FB] · **When:** (o) Next free slot from [date] / ( ) Pick date & time on each card / ( ) Save as drafts, with a small "Change posting times" link to Settings · optional **Notes for AI** (names, places, series; helps both transcripts and captions). Then **Apply to all**. A confirmation lists exactly which cards will change.
 4. Skim the cards. Open any one in the editor to change text or timing.
 5. Click **Schedule 9 videos**. **Nothing is posted until you click this.** Cards with problems are left out and listed ("2 need attention").
 
@@ -113,23 +117,25 @@ Drag a card to another day: the date changes and the time stays. Drop it on a fa
 +------------------------------------------------------------------------------+
 |        Drop videos here  or  [Choose files]     (MP4/MOV, many at once)      |
 +------------------------------------------------------------------------------+
-| Post to: [x] IG Reel  [x] YT Short  [ ] FB Page    Template: Default (edit)  |
+| Post to: [x] IG Reel  [x] YT Short  [x] FB Page                              |
 | When:    (o) Next free slot from [Sat 15 Nov]     (Change posting times)     |
 |          ( ) Pick date & time on each card   ( ) Save as drafts              |
+| Notes for AI (optional): [Goa trip with Rahul, day 2                    ]    |
 |                                                         [Apply to all 12]    |
 +------------------------------------------------------------------------------+
 | 12 videos - 9 drafts - 2 processing - 1 needs attention       Order: [Name v]|
 +------------------------------------------------------------------------------+
-| [thumb] 01_beach.mp4  0:32  9:16   IG YT     Sat 15 Nov 18:00   Draft  [Edit]|
-|   IG  "Golden hour hits different at the..."                  142/2200       |
-|   YT  Title: "Beach sunset in 30 seconds | My Vlog #12"        41/100        |
+| [thumb] 01_beach.mp4  0:58  9:16  IG YT FB   Sat 15 Nov 18:00 IST Draft [Edit]|
+|   IG  "Socha tha normal sunset hoga... phir ye hua 😳"          142/2200      |
+|   YT  Title: "Goa mein ek sunset ne sab badal diya"            36/100        |
 |------------------------------------------------------------------------------|
-| [thumb] 02_gym.mp4    0:58  9:16   IG YT     Sun 16 Nov 18:00                |
+| [thumb] 02_gym.mp4    0:55  9:16  IG YT FB   Sun 16 Nov 18:00 IST             |
 |         Processing: writing captions...                                      |
 |------------------------------------------------------------------------------|
 | [thumb] 03_cafe.mov   ! Needs attention: upload failed (network)  [Retry]    |
 |------------------------------------------------------------------------------|
-| [thumb] 04_run.mp4    2:10  16:9   ! Not vertical: won't be a Short   [Fix]  |
+| [thumb] 04_run.mp4    1:12  9:16   ! Over 60 s: YouTube blocks it if music  |
+|                                      is copyright-claimed       [OK, keep]   |
 +------------------------------------------------------------------------------+
 |                                                 [ Schedule 9 videos -> ]     |
 +------------------------------------------------------------------------------+
@@ -141,19 +147,20 @@ Drag a card to another day: the date changes and the time stays. Drop it on a fa
 | +-----------+  | [Instagram] [YouTube] [Facebook]                          |
 | |  video    |  |---------------------------------------------------------- |
 | |  player   |  | YouTube Short                                             |
-| +-----------+  | Title  [Beach sunset in 30 seconds | My Vlog #12]  41/100 |
-| Trim [|--[==]-|]|                                     [Regenerate] [⋯]     |
-| 0:02 - 0:30    | Description [.................................] 312/5000 |
-| Fit: (o)Pad    |                                     [Regenerate] [⋯]     |
-|      ( )Crop   | Tags  [beach, sunset, travel]   Privacy [Public v]        |
-| Cover:          | When  [Sat 15 Nov 18:00 v]  [ ] Different time per app   |
-| [f1][f2][f3][^] |--------------------- Preview ----------------------------|
-|                 |  [ phone-frame preview of this platform ]  [Hide]        |
-|                 | > History (2 entries)                                     |
+| | (preview  |  | Title  [Goa mein ek sunset ne sab badal diya]     36/100  |
+| |   only)   |  |                                     [Regenerate] [⋯]     |
+| +-----------+  | Description [.................................] 312/5000 |
+| 0:58 · 9:16    |                                     [Regenerate] [⋯]     |
+|                | Tags  [goa, sunset, travel]     Privacy [Public v]        |
+| Transcript [v] | When  [Sat 15 Nov 18:00 IST v]  [ ] Different time per app|
+| Notes      [v] |--------------------- Preview ----------------------------|
+|                |  [ phone-frame preview of this platform ]  [Hide]         |
+|                | > History (2 entries)                                     |
 +---------------------------------------------------------------------------+
 | [Delete]                         [Move to drafts]   [ Save & schedule ]   |
 +---------------------------------------------------------------------------+
-  [⋯] = Shorter · Longer · More casual · More formal · Use template
+  [⋯] = Shorter · Longer · More casual · More formal · More viral
+  Transcript and Notes are editable; changing them offers "Rewrite all texts".
   Facebook tab has a one-time [Copy Instagram caption] button.
 ```
 
@@ -175,16 +182,14 @@ Drag a card to another day: the date changes and the time stays. Drop it on a fa
 ```
 
 ### 3.7 Scheduling words (only three)
-- **Next free slot** (default): fills your weekly **Posting times** grid (set once in Settings, e.g. daily 18:00), starting from a date you choose. If no slot is free, the app says which date is the next free one and offers to add a slot. It never fails silently.
+- **Next free slot** (default): fills your weekly **Posting times** grid (set once in Settings, e.g. daily 18:00 IST), starting from a date you choose. If no slot is free, the app says which date is the next free one and offers to add a slot. It never fails silently.
 - **Pick date & time:** exact time. An advanced checkbox allows **Different time per app**.
 - **Save as draft:** with or without a date. Drafts whose date has passed show "Draft · overdue".
 
-### 3.8 Templates and the default title
-One default template per platform (edited in Settings → Templates), with tokens:
-- `{ai_title}` `{ai_caption}` `{ai_description}` `{hashtags}` `{n}` (running number) `{date}` `{filename}`
-- Example YouTube title: `{ai_title} | My Vlog #{n}`. Example description: `{ai_description}\n\nFollow me: instagram.com/...`
-- Mode per template: **AI only** · **Template only** (the same fixed text for every video) · **Template + AI**.
-- Templates are applied **in code after the AI runs**, so the fixed parts are always exact and the 100-char title limit is checked after filling.
+### 3.8 Titles (your choice: viral, story-based, AI only)
+- **Default for every video:** Claude writes a **viral hook title from the video's story**, with **no links, no hashtags, no series numbers**. Target ≤60 characters so it reads fully on a phone (YouTube's hard limit is 100).
+- The same "story hook" style is used for the first line of the Instagram caption and the Facebook text.
+- **Optional, off by default:** Settings → Templates can add fixed text later (tokens `{ai_title}` `{ai_caption}` `{n}` `{date}`, modes *AI only* · *Template only* · *Template + AI*). Templates are applied in code after the AI runs, so limits are checked after filling.
 
 ### 3.9 Status: six words, the same everywhere (per platform; icon + word, never color alone)
 | Status | Meaning |
@@ -197,8 +202,8 @@ One default template per platform (edited in Settings → Templates), with token
 | ! **Needs attention** | Always with the reason and a fix button: "reconnect YouTube", "upload failed", "missed: server was down" (§5.8), "AI paused: spend limit", "write text manually" |
 
 ### 3.10 Ideas taken from Publer and Buffer, and what we leave out
-**Copy:** drop anywhere · one file = one card · *Apply to all* with a list of what changes · live per-platform preview · red overflow on counters · posting-time slots + "next free slot" · drag that keeps the time · red failure marker with the reason shown · per-platform failure isolation · dated/undated drafts · cover picker with auto frames · one-click refine buttons (Buffer) · Schedule button disabled with a reason ("Uploading…", "Title too long").
-**Leave out:** workspaces, approvals, labels, label-matched slots, recycle/recurring, holiday overlay, the AI chat sidebar (our AI fills fields by itself), a hidden "customize per network" toggle (our tabs are always visible), autofill that deletes posts, two statuses with the same color.
+**Copy:** drop anywhere · one file = one card · *Apply to all* with a list of what changes · live per-platform preview · red overflow on counters · posting-time slots + "next free slot" · drag that keeps the time · red failure marker with the reason shown · per-platform failure isolation · dated/undated drafts · one-click refine buttons (Buffer) · Schedule button disabled with a reason ("Uploading…", "Title too long").
+**Leave out:** workspaces, approvals, labels, label-matched slots, recycle/recurring, holiday overlay, the built-in video editor (no video editing in v1), the AI chat sidebar (our AI fills fields by itself), a hidden "customize per network" toggle (our tabs are always visible), autofill that deletes posts, two statuses with the same color.
 
 ---
 
@@ -233,39 +238,44 @@ Claude's API takes **text and images only**, with no video and no audio (checked
 {
   "summary": "one-line description of the video",
   "detected_language": "en | hi | hinglish | other",
+  "story_hook": "the single most surprising/emotional moment, in one line",
+  "cover_frame_index": 3,
   "instagram": { "caption": "...", "hashtags": ["..."] },
-  "youtube":   { "ai_title": "...", "description": "...", "tags": ["..."] },
-  "facebook":  { "title": "...", "text": "..." }
+  "youtube":   { "title": "...", "description": "...", "tags": ["..."] },
+  "facebook":  { "text": "..." }
 }
 ```
+`cover_frame_index` is Claude's pick of the most eye-catching frame. Instagram uses it as the cover via `thumb_offset` (automatic, no UI).
 Every field is always present (empty for platforms you didn't select), so the schema never changes and stays cached.
 
 ### 4.5 Prompt design
-- **System prompt (cached):** your brand voice, 3–5 of your past captions/titles as examples, tone, emoji level, banned words, output language/script per platform (e.g. English / Hindi in Devanagari / Hinglish in Roman letters), and the platform rules:
-  - Instagram: hook in the first line, caption + **3–5 hashtags** at the end.
-  - YouTube Shorts: searchable title (target ≤70 chars so the template fits in 100), description with the hook in the first 1–2 lines.
-  - Facebook: conversational post text.
+- **System prompt (cached):** your brand voice, 3–5 of your past captions/titles as examples, tone, emoji level, banned words, and **output language/script** (default **Hinglish in Roman letters**, to match your Hindi + English speech; switchable per platform to English or Hindi in Devanagari). Then the platform rules:
+  - **Style for everything: viral and story-driven.** Find the story's hook (the surprise, emotion, twist or payoff) and lead with it; create curiosity without lying (no fake claims, no misleading clickbait).
+  - **YouTube Shorts title:** a story hook, ≤60 chars, **no hashtags, no links, no series numbers**. Description: the hook in the first 1–2 lines, then 2–3 short lines of story context. **No links.**
+  - **Instagram caption:** hook in the first line (it's all people see before "more"), 2–4 short story lines, a soft question/CTA, then hashtags at the end (default 3–5; see §11 B1).
+  - **Facebook:** conversational story text, same hook.
   - Hard rules: describe only what is seen or heard, never invent facts, never name people unless the notes name them, and rely on frames + notes when there's no speech (music-only clips).
+- The transcript is passed as-is (mixed Hindi/English). Claude reads both, so no translation step is needed.
 - **User turn:** frames with timestamps, transcript, notes, video length.
 
 ### 4.6 Limits are enforced in code, not trusted to the AI
-Structured outputs can't enforce lengths, so after each call we check: IG ≤2,200 chars, ≤5 hashtags (configurable), ≤20 mentions; YT title ≤100 chars after the template is applied, description ≤5,000 **bytes**, tags ≤500 chars (YouTube's counting: commas count, multi-word tags count their quotes), `<` and `>` stripped. If a check fails, one targeted repair call runs ("shorten the title to under 70 characters"); if that fails too, we trim at a word boundary and flag the field.
+Structured outputs can't enforce lengths, so after each call we check: IG ≤2,200 chars, ≤5 hashtags (configurable), ≤20 mentions; YT title ≤100 chars after the template is applied, description ≤5,000 **bytes**, tags ≤500 chars (YouTube's counting: commas count, multi-word tags count their quotes), `<` and `>` stripped. If a check fails, one targeted repair call runs ("shorten the title to under 60 characters"); if that fails too, we trim at a word boundary and flag the field.
 
 ### 4.7 Refine controls on every field
-One **[Regenerate]** button plus a small **[⋯]** menu: Shorter · Longer · More casual · More formal · Use template. Each one changes only that field, within that field's limit. Text you typed yourself is **never overwritten** by a later AI run.
+One **[Regenerate]** button plus a small **[⋯]** menu: Shorter · Longer · More casual · More formal · More viral. Each one changes only that field, within that field's limit. Text you typed yourself is **never overwritten** by a later AI run.
 
 ### 4.8 Speech-to-text: a separate service is required
-Anthropic has no STT. Options (prices from the providers' pages, Nov 2026):
+Anthropic has no STT. Your videos mix **Hindi and English in the same sentence**, which is the hardest case for speech-to-text, so we **test before choosing**. Candidates (prices from the providers' pages, Nov 2026; a 60 s video costs well under 1 cent on all of them):
 
-| Option | Price | Notes |
+| Option | Price | Why it's a candidate |
 |---|---|---|
-| **OpenAI `gpt-transcribe`** (recommended default) | ~$0.0045/min (a 1-min Short ≈ ½ cent) | Language hints (e.g. `["hi","en"]`), keyword hints. Replaces whisper-1 / gpt-4o-transcribe (shut down Feb 2027) |
-| Groq `whisper-large-v3-turbo` | ~$0.04/hour | Near-free, word timestamps |
-| Deepgram Nova-3 | ~$0.0043–0.0052/min, $200 free credit | Hindi + Hindi-English code-switching (multilingual mode) |
-| Sarvam AI (India-focused) | ~₹29/hour | "codemix" mode for Hinglish. Sync API ≤30 s, so longer clips use its batch API |
-| Local `faster-whisper` / `whisper.cpp` | Free | Runs in our worker. Needs more RAM; Hindi accuracy varies |
+| **OpenAI `gpt-transcribe`** | ~$0.0045/min | Language hints `["hi","en"]` + keyword hints; handles code-switching. Replaces whisper-1 / gpt-4o-transcribe (shut down Feb 2027) |
+| **Deepgram Nova-3** (multilingual, `language=multi`) | ~$0.0052/min, $200 free credit | Hindi-English code-switching. (Romanized "hi-Latn" output only on older models) |
+| **AssemblyAI Universal-3.5 Pro** | ~$0.21/hour, $50 free credit | Hindi in its 18 languages, with code-switching |
+| **Sarvam AI** `saaras` (India-focused) | ~₹29/hour, ₹100 free credit | "codemix" mode built for Hinglish. Sync API takes ≤30 s, so a 60 s clip is sent as 2 chunks (or via its batch API) |
+| Local `faster-whisper` | Free | Fallback only; Hindi/Hinglish accuracy is weaker |
 
-All of these sit behind one `TranscriptionProvider` interface, so switching is a settings change. **If your videos aren't in English** (e.g. Hindi or Hinglish), M1 includes a quick test of 2–3 options on 5–10 of your real clips before we pick one.
+**M1 test:** 5–10 of your real clips through the top 3–4 options. We compare word accuracy (you mark the best one), and whether output comes in Devanagari or Roman letters (both are fine for Claude, but Roman is easier for you to read and edit). The winner becomes the default; all options sit behind one `TranscriptionProvider` interface, so switching later is a settings change. The transcript is always editable in the editor.
 
 ### 4.9 AI cost per video (8–12 frames + 500-word transcript + ~800 output tokens)
 | Model | Per video | ~60 videos/month |
@@ -287,9 +297,9 @@ All of these sit behind one `TranscriptionProvider` interface, so switching is a
 ### 5.2 Per-platform recipes
 
 **YouTube Shorts (native)**
-1. Resumable `videos.insert`. In the JSON body: `privacyStatus: "private"`, `publishAt: <UTC>`, title/description/tags/category, `defaultLanguage`, `selfDeclaredMadeForKids` (always sent), `containsSyntheticMedia` (default false: AI-written text alone does **not** count as AI content). `notifySubscribers` is a **query parameter** on the upload URL (default true).
+1. Resumable `videos.insert`. In the JSON body: `privacyStatus: "private"`, `publishAt: <UTC>`, title/description/tags/category, `defaultLanguage` + `defaultAudioLanguage` (`hi` for your Hindi + English videos), `selfDeclaredMadeForKids` (always sent), `containsSyntheticMedia` (default false: AI-written text alone does **not** count as AI content). `notifySubscribers` is a **query parameter** on the upload URL (default true).
 2. Save the upload session URL and offset so a crash can resume.
-3. Poll `videos.list(part=status,processingDetails)` until processed, then `thumbnails.set` with your cover (best-effort; a failure here never blocks the post).
+3. Poll `videos.list(part=status,processingDetails)` until processed. (No custom thumbnail in v1: YouTube picks one. `thumbnails.set` for Shorts can be added later.)
 4. Status shows **Scheduled on YouTube**. At T+5 min we check it actually went public.
 5. Edit or reschedule = read the current video, change only what changed, write the whole part back (YouTube erases omitted fields), and always resend `privacyStatus: private` with a new `publishAt`. Cancel = `videos.delete`.
 - Scope: **`youtube.force-ssl`** (covers upload, status, edit, delete, thumbnails).
@@ -299,11 +309,11 @@ All of these sit behind one `TranscriptionProvider` interface, so switching is a
 2. Longer or wide clips: **`/{page-id}/videos`** with `published=false` + `scheduled_publish_time`. The bytes go via `file_url` = a signed R2 link valid ≥1 h (never an `r2.dev` link; the host must not block Facebook's fetcher `facebookexternalhit/1.1`). We don't use Meta's separate `/{app-id}/uploads` API, because it needs a 60-day *user* token on top of the Page token. We never use the deprecated `graph-video.facebook.com` host.
 3. More than 29 days ahead: kept in our queue and pushed to Facebook at T−28 days.
 4. Less than 10 min ahead: app mode. Upload now as a draft (`video_state=DRAFT`), then publish at T (`video_state=PUBLISHED`), so it never goes out early.
-5. Poll `GET /{video-id}?fields=status` until `scheduled`/`published`. Optional cover via `/{video-id}/thumbnails`.
+5. Poll `GET /{video-id}?fields=status` until `scheduled`/`published`. (Custom cover via `/{video-id}/thumbnails`: later.)
 6. Edit, reschedule or cancel = delete on Facebook and push again (in-place editing of scheduled Reels isn't documented).
 
 **Instagram Reels (app mode)**
-1. At **T−15 min**: create a REELS container (`upload_type=resumable`, bytes streamed to `rupload.facebook.com`), with `caption`, `share_to_feed`, and `thumb_offset` or `cover_url` (a short-lived signed link to the cover image).
+1. At **T−15 min**: create a REELS container (`upload_type=resumable`, bytes streamed to `rupload.facebook.com`), with `caption`, `share_to_feed`, and `thumb_offset` = the timestamp of Claude's `cover_frame_index` (automatic cover; no public image link needed).
 2. Poll `status_code` with backoff until `FINISHED`. Containers expire after 24 h, so we never create them early.
 3. At **T**: `media_publish`. Save the media ID and permalink.
 4. Before publishing: check `content_publishing_limit` (the daily quota).
@@ -397,9 +407,9 @@ Dockerfile      one image (Node 24 + ffmpeg), two start commands
 - **Validate** on upload: length, shape, resolution, fps, codecs, file size, audio present. Warnings appear on the card **before** scheduling (e.g. "16:9: will post as a normal Facebook video, not a Reel", "2:10: too long for a Facebook Reel", "No audio").
 - **Fast path:** the file is only remuxed with `+faststart` (seconds, no quality loss) if **all** of these hold: H.264/HEVC 8-bit 4:2:0, progressive, **constant** frame rate within the strictest selected platform (24–60 fps if Facebook Reels is selected, 23–60 for Instagram only), video bitrate ≤25 Mbps, file ≤300 MB, AAC ≤48 kHz, ≤1920 px. Phone clips often fail the constant-frame-rate check, so they get normalized.
 - **Normalize** when needed: H.264 High, yuv420p, constant 30 fps, 1080×1920, AAC 48 kHz stereo 128 kbps, `+faststart`, no edit lists. Handles phone rotation and **iPhone HDR** (tone-mapped so colors don't look washed out).
-- **Trim / cover / fit:** the browser only saves numbers (`trim_start`, `trim_end`, `cover_ms`, pad or crop). The worker re-renders the master. Edits are non-destructive: the original is kept until publish.
+- **No video editing in v1:** videos are posted as uploaded. Normalizing (above) only changes the file format, never the content. Non-vertical clips get a warning instead of being cropped.
 - **Frames** for AI: 1 hook frame at ~0.5 s + 7 evenly spaced + up to 4 scene changes, 576×1024 JPEG. **Audio:** compressed mono 16 kHz (mp3/m4a, 32–64 kbps), chunked if over ~25 MB.
-- **Copyright note:** a YouTube Short **over 60 s** with any Content ID claim (e.g. popular music) is **blocked worldwide**. The card warns for 60–180 s clips.
+- **Copyright note:** a YouTube Short **over 60 s** with any Content ID claim (e.g. popular music) is **blocked worldwide**. Your videos are around 60 s, so the card warns on anything **over 60 s** ("trim it in your phone's editor, or keep it if there's no copyrighted music").
 - **Cleanup:** originals and masters are deleted N days (default 7) after every platform has published (setting: keep originals). Nightly database backup to R2.
 
 ---
@@ -410,7 +420,7 @@ Dockerfile      one image (Node 24 + ffmpeg), two start commands
 |---|---|
 | `app_settings` | timezone, default platforms, brand voice, AI model/effort, missed-post policy, alert settings, purge days, privacy-policy accepted at |
 | `social_accounts` | platform, external IDs (channel, Page, IG user), **encrypted** tokens, granted scopes, expiry, status (active / needs_reauth) |
-| `media_assets` | file keys in R2, probe data (length, size, fps, codecs, HDR), trim/cover/fit, transcript, status |
+| `media_assets` | file keys in R2, probe data (length, size, fps, codecs, HDR), transcript, notes, auto cover frame, status |
 | `media_frames` | frame timestamps + keys |
 | `ai_generations` | model, tokens, cost, raw JSON output |
 | `templates` | per-platform title/caption/description patterns, hashtags, mode |
@@ -447,13 +457,13 @@ Each milestone ends with something you can try.
 | # | Milestone | Done when |
 |---|---|---|
 | **M0** | Foundations: repo, Docker image, Railway (web + worker + Postgres), domain + HTTPS, owner login, Settings skeleton, privacy/terms/data-deletion pages | You can log in at `https://<your-domain>` |
-| **M1** | Upload & processing: Uppy → R2, probe/validate/normalize, frames, audio, STT (+ STT test on your clips if non-English) | Drop 10 videos → cards with length/shape warnings and transcripts |
-| **M2** | AI text: Claude call, schema, limit checks, templates, editor drawer with tabs/counters/refine buttons, AI style settings | Each card shows IG caption, YT title/description/tags and FB text within ~1 min |
-| **M3** | **YouTube:** connect, native scheduled upload, thumbnail, status polling, edit/reschedule/cancel | Live tests pass: ① private upload ② public Short scheduled 15 min ahead goes public (confirms the Nov 2026 rule) ③ Shorts thumbnail set |
+| **M1** | Upload & processing: Uppy → R2, probe/validate/normalize, frames, audio, **Hindi + English speech-to-text test** (3–4 services on your clips, you pick the winner) | Drop 10 videos → cards with length/shape warnings and readable transcripts |
+| **M2** | AI text: Claude call, schema, limit checks, viral story-hook prompt in Hinglish, editor drawer with tabs/counters/refine buttons, editable transcript/notes, AI style settings | Each card shows IG caption, YT title/description/tags and FB text within ~1 min, and you'd post at least 8 of 10 with no or small edits |
+| **M3** | **YouTube:** connect, native scheduled upload, status polling, edit/reschedule/cancel | Live tests pass: ① private upload ② public Short scheduled 15 min ahead goes public (confirms the Nov 2026 rule) ③ reschedule and cancel work |
 | **M4** | **Facebook + Instagram:** one "Connect Meta" button, FB Reels native schedule, IG container → publish, quota checks, basic dispatcher | Live tests pass: ④ FB Reel scheduled ⑤ IG Reel published at time ⑥ both **visible when logged out** (checks Meta's dev-mode visibility rule, see §13) |
 | **M5** | Bulk & calendar: posting-time grid, next free slot, Apply to all, Week/Month/List, drag to reschedule, drafts tray, ordering, throttled native-upload queue | Drop **40+** videos → Schedule → all placed in slots, uploads spread within daily caps, everything visible on the calendar |
 | **M6** | Reliability: watchdog, retries + check-before-retry, token health, Telegram alerts, missed-post policy, purge, backups, History section in the editor | Kill the worker during a scheduled IG post → it recovers per policy and you get an alert |
-| **M7** | Light edits & polish: trim, cover picker, pad/crop, per-platform preview, monthly AI cost in Settings, phone layout | Trim + cover on one video and see it in the published post |
+| **M7** | Polish: per-platform phone preview, monthly AI cost in Settings, phone-friendly layout, small fixes from daily use. (No video editing.) | You can run a full week of posts from your phone |
 
 After M7 you use it daily for a week, and then we fix what annoys you.
 
@@ -469,30 +479,34 @@ After M7 you use it daily for a week, and then we fix what annoys you.
 | 1 | A **domain name** (e.g. `myscheduler.com`, ~$10–15/yr; DNS on Cloudflare is easiest) | Domain name | M0 |
 | 2 | **GitHub** account access to this repo (you have it) + a **Railway** account (Hobby: $5/mo base incl. $5 usage; expect ~$10–15/mo total), connected to GitHub | Invite me / share project access | M0 |
 | 3 | **Cloudflare** account with **R2** turned on (asks for a card; stays ~$0) | Account ID (secret keys go into Railway) | M1 |
-| 4 | **Speech-to-text account.** English-only videos: an **OpenAI** API account with ~$5 credit. Hindi/Hinglish or mixed: answer B2 first. In M1 I'll tell you which 1–2 free-credit accounts to create for a quick test (e.g. Deepgram gives $200 free), and you keep only the winner | Key goes into Railway | M1 |
+| 4 | **Speech-to-text accounts for the M1 test** (your videos mix Hindi + English): **OpenAI** API (~$5 credit), **Deepgram** ($200 free), **Sarvam AI** (₹100 free), optionally **AssemblyAI** ($50 free). After the test you keep only the winner's key | Keys go into Railway | M1 |
 | 5 | **Anthropic** API account (platform.claude.com) with ~$10 credit and a monthly spend limit (e.g. $20). If you pay for Claude Max/Team, check whether it includes monthly API credits | Key goes into Railway | M2 |
-| 6 | **YouTube:** phone-verify your channel (youtube.com/verify) | Tell me if the channel is a *Brand Account* | M3 |
+| 6 | **YouTube:** your channel. Phone verification (youtube.com/verify) is optional in v1 (needed later for custom thumbnails) | Tell me if the channel is a *Brand Account* | M3 |
 | 7 | **Google Cloud project** for YouTube (free). I'll give you the links, settings and our redirect URLs | Client ID (secret goes into Railway) | M3 |
 | 8 | **Facebook Page** you admin (create one if you only have a profile) + **2-factor login** on your Facebook account + **Page Publishing Authorization** completed in advance if Facebook offers it (the app can't detect it, and Instagram posting fails while it's pending) | Page name | M4 |
 | 9 | **Instagram:** switch to **Professional (Creator is fine)**, keep it **public**, **link it to the Facebook Page** | Instagram handle | M4 |
 | 10 | **Meta developer account + app** (free). I'll send exact clicks | App ID, Configuration ID (App Secret goes into Railway) | M4 |
 | 11 | **Telegram bot** for alerts: create it with @BotFather and send it one message (the app finds your chat ID). *Or* email alerts: a free **Resend** account, and I'll add its DNS records to your domain | Bot token goes into Railway | M6 |
 
-### B1. Please answer these (no safe default)
-1. Your **time zone** (e.g. Asia/Kolkata?).
-2. **Language(s) spoken in your videos**, and the language/script you want for captions (English / Hindi / Hinglish, or different per platform). This decides the speech-to-text choice.
-3. **Typical videos:** vertical? how long? (≤60 s / ≤90 s / ≤3 min / longer). This decides Facebook Reels vs normal video and YouTube's music warning.
-4. **Default title pattern** (e.g. `{ai_title} | <Series> #{n}`), or a fixed title for all videos.
-5. **Fixed text per platform:** YouTube description footer (links), fixed hashtags, Facebook call to action.
-6. **An app name** (must not include YouTube, YT, Google, Instagram or Facebook).
-7. **Is light video editing (trim / cover / crop) needed in v1?** If not, we skip it and launch sooner.
+### B1. Your answers (13 Nov 2026) and what's still open
+| # | Question | Answer |
+|---|---|---|
+| 1 | Time zone | ✅ **IST** (Asia/Kolkata) |
+| 2 | Spoken language | ✅ **Hindi + English mixed** |
+| 3 | Typical videos | ✅ **Vertical, ~60 s** |
+| 4 | Title pattern | ✅ **Viral story hook, no links, no hashtags** |
+| 5 | Fixed text per platform | ✅ **None** (no links) |
+| 6 | Video editing in v1 | ✅ **No, text editing only** |
+| 7 | **Caption language/script** | ❓ Default: **Hinglish in Roman letters** (e.g. "Socha tha normal sunset hoga… phir ye hua"). Or English, or Hindi in Devanagari? |
+| 8 | **Hashtags in captions** (titles never have them) | ❓ Default: **3–5 at the end of the Instagram caption, 2–3 at the end of the YouTube description, none on Facebook.** Or none anywhere? |
+| 9 | **App name** | ❓ Working name **"Social Media Scheduler"** (allowed: no platform names). Shorter options for a domain: **SocialSlot**, **PostKaro**, **ClipQueue**, **PostSaathi**. Check the name isn't already a known product before buying the domain |
 
 ### B2. I'll use these defaults unless you object
-1. Posting times: **every day at 18:00**.
-2. Title mode: **Template + AI**.
+1. Posting times: **every day at 18:00 IST**.
+2. Title mode: **AI only** (viral story hook); templates off.
 3. YouTube: privacy **Public**, category **People & Blogs**, made for kids **No**, notify subscribers **Yes**, AI-altered video **No**.
 4. Instagram: also show in main feed **On**, hashtags **≤5**.
-5. Facebook: **Reel when ≤90 s and vertical, normal Page video otherwise**.
+5. Facebook: **Reel** (your ~60 s vertical videos always qualify; a normal Page video is used only if a clip is over 90 s or not vertical).
 6. Originals deleted **7 days after** all platforms have published.
 7. Missed Instagram post: **publish late if within 2 h, otherwise ask me**.
 8. Alerts: **Telegram**.
@@ -502,7 +516,8 @@ After M7 you use it daily for a week, and then we fix what annoys you.
 ### C. Content for good captions
 - 5–10 past captions/titles/descriptions you liked (sets the brand voice), emoji level, words to avoid.
 - A list of names, places and recurring terms (helps both speech-to-text and captions).
-- 5–10 sample videos (mixed languages, one music-only) to test speech-to-text and caption quality.
+- 5–10 sample videos (your usual Hindi + English mix, one music-only if you make those) to test speech-to-text and caption quality.
+- 3–5 Reels/Shorts titles from other creators whose "viral" style you like (optional, helps Claude match the tone).
 
 ---
 
