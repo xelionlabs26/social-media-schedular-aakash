@@ -19,10 +19,12 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @app/db generate",
     "db:migrate": "pnpm --filter @app/db migrate",
-    "hash-password": "pnpm --filter @app/core exec tsx scripts/hash-password.ts"
+    "hash-password": "pnpm --filter @app/core exec tsx scripts/hash-password.ts",
+    "stt:compare": "tsx --env-file-if-exists=.env packages/core/scripts/stt-compare.ts"
   },
   "devDependencies": {
     "prettier": "3.10.1",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
   }
 }
