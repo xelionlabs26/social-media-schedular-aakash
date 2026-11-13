@@ -382,9 +382,9 @@ Setting: **Publish late if within [2] hours, otherwise ask me** (default; asking
 | Database | **PostgreSQL 18** + Drizzle ORM (pinned) | Web and worker share it; the job queue lives in it too |
 | Jobs / cron | **pg-boss 12** | No Redis, retries, cron with timezone, one-at-a-time locks |
 | Storage | **Cloudflare R2** (private) + Uppy uploader | Zero egress fees, free tier covers personal use, resumable uploads |
-| Auth | **Better Auth**: owner email + password (+ optional passkey), sign-up disabled | Simple, secure, single user |
+| Auth | **Built-in owner login**: email + scrypt password hash from env, signed session cookie (jose), login rate limit, logout-everywhere via a session version | Simplest secure option for exactly one user (no sign-up flow to lock down). Chosen over Better Auth during the build |
 | AI | `@anthropic-ai/sdk` (pinned 1.x), `claude-opus-5-5` | §4 |
-| Hosting | **Railway Hobby**: 3 services (web, worker, Postgres) from one repo/Dockerfile | ~$10–15/mo, no server upkeep. Alternative: DigitalOcean droplet $12–24 (cheaper, but you patch it) |
+| Hosting | **Now:** code on GitHub, CI on GitHub Actions, run in **GitHub Codespaces** or on your computer (local disk storage). **Later (when you have a domain):** **Railway Hobby**, 3 services (web, worker, Postgres) from one repo/Dockerfile, storage on R2 | GitHub alone can't run the always-on worker that Instagram posting needs. Railway: ~$10–15/mo, no server upkeep. Alternative: DigitalOcean droplet $12–24 |
 | Alerts | Telegram Bot API (email via Resend optional) | Free |
 | Time zones | Everything stored in UTC; shown in your zone (date-fns + @date-fns/tz) | Correct across DST |
 
@@ -430,7 +430,7 @@ Dockerfile      one image (Node 24 + ffmpeg), two start commands
 | `publish_attempts` | every step tried, with result, shown in the editor's **History** section |
 | `posting_slots` | your weekly posting-time grid |
 
-(pg-boss and Better Auth create their own tables.)
+(pg-boss creates its own tables in the `pgboss` schema.)
 
 ---
 
