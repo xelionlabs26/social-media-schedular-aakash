@@ -50,7 +50,13 @@ export function getDefaultClaudeClient(apiKey: string | undefined): ClaudeClient
   if (!apiKey) throw new AiError('config', 'Add ANTHROPIC_API_KEY or set AI_MOCK=true.');
   let client = clients.get(apiKey);
   if (!client) {
-    const anthropic = new Anthropic({ apiKey, maxRetries: 1 });
+    // Keys not scoped to a workspace must name one on every request.
+    const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+    const anthropic = new Anthropic({
+      apiKey,
+      maxRetries: 1,
+      ...(workspaceId ? { defaultHeaders: { 'anthropic-workspace-id': workspaceId } } : {}),
+    });
     client = {
       async send(params) {
         const stream = anthropic.beta.messages.stream(params);

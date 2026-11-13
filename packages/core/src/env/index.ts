@@ -76,6 +76,8 @@ const EnvSchema = z.object({
 
   // ---- AI -------------------------------------------------------------------------------------
   ANTHROPIC_API_KEY: optional(),
+  /** Only for API keys not scoped to a workspace (wrkspc_...). */
+  ANTHROPIC_WORKSPACE_ID: optional(),
   /** Use canned AI output instead of calling Claude (local development without a key). */
   AI_MOCK: bool(false),
 
