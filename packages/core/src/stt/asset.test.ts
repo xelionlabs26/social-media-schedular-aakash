@@ -179,6 +179,21 @@ describe.skipIf(!DB_URL)('transcribeAsset (database)', () => {
     ]);
   });
 
+  it('does not repeat the no-audio note the video check already added', async () => {
+    const asset = await createAsset();
+    const noSound = {
+      code: 'no_audio',
+      severity: 'info' as const,
+      message: 'No sound in this video.',
+    };
+    await db
+      .update(mediaAssets)
+      .set({ warnings: [noSound] })
+      .where(eq(mediaAssets.id, asset.id));
+    expect(await transcribeAsset(deps(), asset.id, null)).toEqual({ ok: true });
+    expect((await reload(asset.id)).warnings).toEqual([noSound]);
+  });
+
   it('records an empty transcript with a no_speech note', async () => {
     await updateSettings(db, { sttProvider: 'openai' });
     const asset = await createAsset();

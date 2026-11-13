@@ -24,6 +24,8 @@ export const STT_WARNING_CODES = {
 } as const;
 
 const OWNED_CODES = new Set<string>(Object.values(STT_WARNING_CODES));
+/** Code of the media check's "No sound in this video" note (media/warnings.ts). */
+const MEDIA_NO_AUDIO_CODE = 'no_audio';
 
 export const NOT_CONFIGURED_MESSAGE =
   'Speech-to-text is not set up; captions will use frames and notes only';
@@ -76,11 +78,19 @@ export async function transcribeAsset(
   }
 
   if (!audio) {
-    await replaceSttWarning(deps.db, assetId, {
-      code: STT_WARNING_CODES.noSpeech,
-      severity: 'info',
-      message: 'No audio track; captions will use frames and notes only',
-    });
+    // The video check usually says "No sound in this video" already; don't say it twice.
+    const saidAlready = (asset.warnings ?? []).some((w) => w.code === MEDIA_NO_AUDIO_CODE);
+    await replaceSttWarning(
+      deps.db,
+      assetId,
+      saidAlready
+        ? null
+        : {
+            code: STT_WARNING_CODES.noSpeech,
+            severity: 'info',
+            message: 'No audio track; captions will use frames and notes only',
+          },
+    );
     return { ok: true };
   }
 
@@ -263,13 +273,18 @@ function withoutSttWarnings(warnings: AssetWarning[] | null | undefined): AssetW
 }
 
 /** Replaces this module's warning on the asset, leaving other modules' warnings untouched. */
-async function replaceSttWarning(db: Db, assetId: string, warning: AssetWarning): Promise<void> {
+async function replaceSttWarning(
+  db: Db,
+  assetId: string,
+  warning: AssetWarning | null,
+): Promise<void> {
   await db.transaction(async (tx) => {
     const current = await lockAsset(tx, assetId);
     if (!current) return;
+    const rest = withoutSttWarnings(current.warnings);
     await tx
       .update(mediaAssets)
-      .set({ warnings: [...withoutSttWarnings(current.warnings), warning] })
+      .set({ warnings: warning ? [...rest, warning] : rest })
       .where(eq(mediaAssets.id, assetId));
   });
 }
