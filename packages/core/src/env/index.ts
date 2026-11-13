@@ -3,7 +3,30 @@
  * feature shows a "not configured" hint instead of crashing, so the app runs locally with only
  * DATABASE_URL + the auth settings.
  */
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
+
+/**
+ * Directory that contains pnpm-workspace.yaml. The web app and the worker run from different
+ * folders (apps/web, apps/worker), so relative data paths are resolved from here; otherwise
+ * each process would read and write its own copy of `.data`.
+ */
+export function repoRoot(start = process.cwd()): string {
+  let dir = path.resolve(start);
+  for (;;) {
+    if (existsSync(path.join(dir, 'pnpm-workspace.yaml'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return path.resolve(start);
+    dir = parent;
+  }
+}
+
+const dataPath = (def: string) =>
+  z
+    .string()
+    .default(def)
+    .transform((v) => (path.isAbsolute(v) ? v : path.join(repoRoot(), v)));
 
 const optional = () =>
   z
@@ -42,14 +65,14 @@ const EnvSchema = z.object({
 
   // ---- Storage --------------------------------------------------------------------------------
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
-  STORAGE_DIR: z.string().default('.data/storage'),
+  STORAGE_DIR: dataPath('.data/storage'),
   S3_ENDPOINT: optional(), // R2: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
   S3_REGION: z.string().default('auto'),
   S3_BUCKET: optional(),
   S3_ACCESS_KEY_ID: optional(),
   S3_SECRET_ACCESS_KEY: optional(),
   /** Scratch space for ffmpeg. */
-  WORK_DIR: z.string().default('.data/work'),
+  WORK_DIR: dataPath('.data/work'),
 
   // ---- AI -------------------------------------------------------------------------------------
   ANTHROPIC_API_KEY: optional(),

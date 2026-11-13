@@ -43,7 +43,12 @@ async function main() {
 
   // Queues (idempotent).
   const existing = new Set((await boss.getQueues()).map((q) => q.name));
-  for (const name of Object.values(QUEUES)) {
+  // The dead-letter queue must exist before queues that point to it.
+  const queueNames = [
+    QUEUES.deadLetter,
+    ...Object.values(QUEUES).filter((n) => n !== QUEUES.deadLetter),
+  ];
+  for (const name of queueNames) {
     const { policy, ...opts } = QUEUE_OPTIONS[name];
     const deadLetter = name === QUEUES.deadLetter ? undefined : QUEUES.deadLetter;
     if (!existing.has(name)) {
