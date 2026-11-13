@@ -1,50 +1,57 @@
 /**
  * Meta: Facebook Login for Business + Facebook Page (Reels/videos) + Instagram (Reels).
  * (Module owner: meta.)
+ *
+ * Graph host https://graph.facebook.com/{GRAPH_VERSION}; bytes go to rupload.facebook.com.
  */
-import type { Db } from '@app/db';
-import type { Env } from '../env';
-import { NotImplementedError } from '../deps';
 import type { PlatformIntegration } from '../platforms';
+import { createFacebookPublisher } from './facebook';
+import { checkFacebookHealth, checkInstagramHealth, revokeMeta } from './health';
+import { createInstagramPublisher } from './instagram';
+import { createMetaRuntime, type MetaRuntimeOptions } from './runtime';
 
-export function metaOAuthConfigured(env: Env): boolean {
-  return Boolean(env.META_APP_ID && env.META_APP_SECRET);
+export {
+  META_SCOPES,
+  finishMetaOAuth,
+  friendlyOAuthError,
+  metaOAuthConfigured,
+  metaRedirectUri,
+  pickPage,
+  safeReturnPath,
+  startMetaOAuth,
+  type MetaOAuthDeps,
+  type MetaPage,
+} from './oauth';
+export { mapGraphError, scrubSecrets, regainAccessSeconds } from './errors';
+export { qualifiesAsReel, facebookKind } from './video';
+export { FACEBOOK_REQUIRED_SCOPES, INSTAGRAM_REQUIRED_SCOPES } from './health';
+export type { MetaRuntimeOptions } from './runtime';
+
+/** Builds the Facebook integration (tests inject fetch / env). */
+export function createFacebookIntegration(opts: MetaRuntimeOptions = {}): PlatformIntegration {
+  const rt = createMetaRuntime(opts);
+  const publisher = createFacebookPublisher(rt);
+  return {
+    platform: 'facebook',
+    publisher,
+    checkHealth: (account) => checkFacebookHealth(rt, account),
+    revoke: (account) => revokeMeta(rt, account),
+  };
 }
 
-/** Redirect URI registered in the Meta app: `${APP_URL}/api/oauth/meta/callback`. */
-export const metaRedirectUri = (env: Env) => `${env.APP_URL}/api/oauth/meta/callback`;
-
-export async function startMetaOAuth(
-  _deps: { db: Db; env: Env },
-  _opts: { redirectTo?: string } = {},
-): Promise<string> {
-  throw new NotImplementedError('meta.startMetaOAuth');
+/** Builds the Instagram integration (tests inject fetch / env). */
+export function createInstagramIntegration(opts: MetaRuntimeOptions = {}): PlatformIntegration {
+  const rt = createMetaRuntime(opts);
+  const publisher = createInstagramPublisher(rt);
+  return {
+    platform: 'instagram',
+    publisher,
+    checkHealth: (account) => checkInstagramHealth(rt, account),
+    // Instagram shares the Facebook login: revoking it would also cut off the Page. Disconnecting
+    // Instagram only forgets its stored token (accounts.disconnectAccount); revoke via Facebook.
+    revoke: async () => {},
+  };
 }
 
-/** Handles the callback: exchanges the code, picks the Page (+ linked IG), stores both accounts. */
-export async function finishMetaOAuth(
-  _deps: { db: Db; env: Env },
-  _params: { code: string; state: string; error?: string },
-): Promise<{ redirectTo: string; error?: string }> {
-  throw new NotImplementedError('meta.finishMetaOAuth');
-}
-
-export const facebookIntegration: PlatformIntegration = {
-  platform: 'facebook',
-  get publisher(): never {
-    throw new NotImplementedError('meta.facebook.publisher');
-  },
-  async checkHealth() {
-    throw new NotImplementedError('meta.facebook.checkHealth');
-  },
-};
-
-export const instagramIntegration: PlatformIntegration = {
-  platform: 'instagram',
-  get publisher(): never {
-    throw new NotImplementedError('meta.instagram.publisher');
-  },
-  async checkHealth() {
-    throw new NotImplementedError('meta.instagram.checkHealth');
-  },
-};
+export const facebookIntegration: PlatformIntegration = createFacebookIntegration();
+export const instagramIntegration: PlatformIntegration = createInstagramIntegration();
