@@ -14,7 +14,7 @@
     "start:web": "pnpm --filter @app/web start",
     "start:worker": "pnpm --filter @app/worker start",
     "typecheck": "pnpm -r --no-bail typecheck",
-    "test": "pnpm -r --no-bail test",
+    "test": "pnpm -r --workspace-concurrency=1 --no-bail test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @app/db generate",
