@@ -27,14 +27,18 @@ export interface ServiceDeps {
 }
 
 export function defaultDeps(overrides: Partial<ServiceDeps> = {}): ServiceDeps {
-  return {
+  const deps = {
     db: overrides.db ?? getDb(),
     storage: overrides.storage ?? getStorage(),
-    env: overrides.env ?? getEnv(),
     log: overrides.log ?? createLogger('app'),
     jobs: overrides.jobs ?? { send: (q, d, o) => sendJob(q, d, o) },
     now: overrides.now ?? (() => new Date()),
-  };
+  } as ServiceDeps;
+  // Without an override, env is read on every access, so keys saved in Settings take effect
+  // in long-lived processes (web app, worker) without a restart.
+  if (overrides.env) deps.env = overrides.env;
+  else Object.defineProperty(deps, 'env', { get: () => getEnv(), enumerable: true });
+  return deps;
 }
 
 export class NotImplementedError extends Error {

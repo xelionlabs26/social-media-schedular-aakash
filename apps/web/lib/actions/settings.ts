@@ -9,7 +9,8 @@ import { and, count, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { postingSlots, socialAccounts, templates, type SocialAccount } from '@app/db';
 import { decryptAccount, disconnectAccount } from '@app/core/accounts';
-import { integrationStatus } from '@app/core/env';
+import { getBaseEnv, integrationStatus } from '@app/core/env';
+import { isUiKeyName, saveKeys, validateKey, type UiKeyName } from '@app/core/keys';
 import { facebookIntegration, instagramIntegration } from '@app/core/meta';
 import { discoverTelegramChatId, notify } from '@app/core/notify';
 import type { PlatformIntegration } from '@app/core/platforms';
@@ -32,6 +33,7 @@ import {
   TemplatesSchema,
   firstIssue,
 } from '@/components/settings/schemas';
+import { KEY_FIELDS } from '@/components/settings/keys-meta';
 
 /** Upper bound so a script can't fill the grid with thousands of rows. */
 const MAX_SLOTS = 7 * 24;
@@ -184,6 +186,68 @@ export async function saveDefaultsAction(input: unknown): Promise<ActionResult> 
 }
 
 // ---------------------------------------------------------------------------------------------
+// Setup: keys pasted in the app (stored encrypted, see core/keys)
+// ---------------------------------------------------------------------------------------------
+
+const KeysInputSchema = z.record(z.string().max(64), z.string().max(1000));
+
+function checkKeyNames(names: string[]): UiKeyName[] {
+  if (names.length === 0 || names.length > 20) throw new UserError('Nothing to save.');
+  const base = getBaseEnv();
+  return names.map((name) => {
+    if (!isUiKeyName(name)) throw new UserError('Unknown key.');
+    // A key in the server environment wins, so saving one here would silently do nothing.
+    if (base[name]) {
+      throw new UserError(
+        `${KEY_FIELDS[name].label} is set in the server's .env; change it there.`,
+      );
+    }
+    return name;
+  });
+}
+
+/** [Save] in a Setup group: empty boxes keep the current value. */
+export async function saveKeysAction(input: unknown): Promise<ActionResult> {
+  return run(
+    'Saving the keys',
+    async () => {
+      const values = KeysInputSchema.parse(input);
+      const filled = Object.entries(values).filter(([, v]) => v.trim() !== '');
+      if (filled.length === 0) throw new UserError('Paste at least one key first.');
+      const names = checkKeyNames(filled.map(([n]) => n));
+      for (const [i, name] of names.entries()) {
+        const problem = validateKey(name, filled[i]![1]);
+        if (problem) throw new UserError(`${KEY_FIELDS[name].label}: ${problem}`);
+      }
+      if (!getBaseEnv().TOKEN_ENC_KEY) {
+        throw new UserError(
+          'TOKEN_ENC_KEY is missing on the server, so keys cannot be stored safely.',
+        );
+      }
+      await saveKeys(
+        getDeps().db,
+        Object.fromEntries(names.map((n, i) => [n, filled[i]![1].trim()])),
+      );
+      return ok(names.length === 1 ? 'Key saved' : 'Keys saved');
+    },
+    ['/settings', '/'],
+  );
+}
+
+/** [Remove] in a Setup group: forgets the saved keys (connected accounts stay connected). */
+export async function removeKeysAction(input: unknown): Promise<ActionResult> {
+  return run(
+    'Removing the keys',
+    async () => {
+      const names = checkKeyNames(z.array(z.string().max(64)).max(20).parse(input));
+      await saveKeys(getDeps().db, Object.fromEntries(names.map((n) => [n, null])));
+      return ok('Removed');
+    },
+    ['/settings', '/'],
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
 // Notifications helpers
 // ---------------------------------------------------------------------------------------------
 
@@ -192,7 +256,7 @@ export async function detectTelegramChatAction(): Promise<ActionResult<{ chatId:
   return run('Detecting the chat id', async () => {
     const deps = getDeps();
     if (!integrationStatus(deps.env).telegram) {
-      throw new UserError('Add TELEGRAM_BOT_TOKEN to your .env file first.');
+      throw new UserError('Paste your Telegram bot token under Setup first.');
     }
     const chatId = await discoverTelegramChatId(deps);
     if (!chatId) {

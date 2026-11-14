@@ -1,6 +1,6 @@
 /**
- * Settings (PLAN.md §3.1): one page with anchored sections. Accounts · Posting times · AI style ·
- * Templates · Notifications · Defaults.
+ * Settings (PLAN.md §3.1): one page with anchored sections. Setup · Accounts · Posting times ·
+ * AI style · Templates · Notifications · Defaults.
  */
 import { requireOwnerPage } from '@/lib/auth';
 import { getDeps } from '@/lib/deps';
@@ -11,12 +11,14 @@ import { DefaultsSection } from '@/components/settings/DefaultsSection';
 import { NotificationsSection } from '@/components/settings/NotificationsSection';
 import { OAuthNotice } from '@/components/settings/OAuthNotice';
 import { PostingTimesSection } from '@/components/settings/PostingTimesSection';
+import { SetupSection } from '@/components/settings/SetupSection';
 import { AI_MODELS, type AiModelId } from '@/components/settings/schemas';
 import { TemplatesSection } from '@/components/settings/TemplatesSection';
 
 export const metadata = { title: 'Settings' };
 
 const SECTIONS = [
+  { id: 'setup', label: 'Setup' },
   { id: 'accounts', label: 'Accounts' },
   { id: 'posting-times', label: 'Posting times' },
   { id: 'ai', label: 'AI style' },
@@ -76,6 +78,12 @@ export default async function SettingsPage({
       </nav>
 
       <OAuthNotice connected={param(sp.connected)} error={param(sp.error)} />
+
+      <SetupSection
+        keys={data.setup.keys}
+        urls={data.setup.urls}
+        canSave={data.setup.canSave}
+      />
 
       <AccountsSection
         youtube={data.accounts.youtube}

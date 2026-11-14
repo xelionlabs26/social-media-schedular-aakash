@@ -97,7 +97,7 @@ export async function startGoogleOAuth(
 /** Messages shown on the Settings screen. */
 export const OAUTH_ERRORS = {
   notConfigured:
-    'YouTube connection is not set up on the server yet (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing).',
+    'YouTube is not set up yet. Paste the Google app keys under Settings → Setup first.',
   denied: 'You cancelled the Google permission screen, so YouTube was not connected.',
   googleError: 'Google could not complete the sign-in. Please try Connect YouTube again.',
   badState: 'This sign-in link expired or was already used. Please click Connect YouTube again.',

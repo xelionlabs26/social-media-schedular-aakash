@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm';
 import { formatShort } from '@app/core/time';
 import type { AccountView, IntegrationView } from './data';
-import { EnvKeys, Section, useSettingsAction } from './parts';
+import { Section, useSettingsAction } from './parts';
 
 const GOOGLE_START = '/api/oauth/google/start';
 const META_START = '/api/oauth/meta/start';
@@ -44,6 +44,7 @@ export function AccountsSection({
           title="YouTube"
           explainer="Your YouTube channel. Uses Google sign-in with upload permission."
           connectLabel="Connect YouTube"
+          setupLabel="YouTube (Google app)"
           startUrl={GOOGLE_START}
           accounts={youtube}
           integration={integrations.youtube}
@@ -54,6 +55,7 @@ export function AccountsSection({
           title="Facebook Page & Instagram"
           explainer="One Meta login connects your Facebook Page and the Instagram professional account linked to it."
           connectLabel="Connect Facebook & Instagram"
+          setupLabel="Facebook & Instagram (Meta app)"
           startUrl={META_START}
           accounts={meta}
           integration={integrations.meta}
@@ -69,6 +71,7 @@ function Provider({
   title,
   explainer,
   connectLabel,
+  setupLabel,
   startUrl,
   accounts,
   integration,
@@ -78,6 +81,7 @@ function Provider({
   title: string;
   explainer: string;
   connectLabel: string;
+  setupLabel: string;
   startUrl: string;
   accounts: AccountView[];
   integration: IntegrationView;
@@ -132,9 +136,12 @@ function Provider({
           </a>
         ) : (
           <p className="w-full text-xs text-muted">
-            {connected ? 'To reconnect, add ' : 'Not set up yet. Add '}
-            <EnvKeys keys={integration.missingKeys} /> to your <code>.env</code> file, then restart
-            the app.
+            {connected ? 'To reconnect, first paste the ' : 'First paste the '}
+            {setupLabel} keys under{' '}
+            <a href="#setup" className="font-medium text-text underline">
+              Setup
+            </a>
+            . The button appears here once they&apos;re saved.
           </p>
         )}
         {/* Disconnect works even without the integration keys: it always forgets the login here. */}

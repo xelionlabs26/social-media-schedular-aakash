@@ -111,22 +111,119 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
+/**
+ * Keys the owner can paste in Settings instead of .env (stored encrypted in `app_keys`, see
+ * core/keys). Only these names are accepted from the database.
+ */
+export const UI_KEY_NAMES = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'META_APP_ID',
+  'META_APP_SECRET',
+  'META_LOGIN_CONFIG_ID',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_WORKSPACE_ID',
+  'DEEPGRAM_API_KEY',
+  'OPENAI_API_KEY',
+  'SARVAM_API_KEY',
+  'ASSEMBLYAI_API_KEY',
+  'TELEGRAM_BOT_TOKEN',
+] as const satisfies ReadonlyArray<keyof Env>;
+export type UiKeyName = (typeof UI_KEY_NAMES)[number];
+export type SavedKeys = Partial<Record<UiKeyName, string>>;
+
 let cached: Env | undefined;
 
-export function getEnv(source: Record<string, string | undefined> = process.env): Env {
-  if (cached && source === process.env) return cached;
+/**
+ * Saved keys live on globalThis: Next.js can load this module more than once in one process
+ * (server components, route handlers), and every copy must see the same keys.
+ */
+interface KeyState {
+  saved: SavedKeys;
+  version: number;
+  loadedAt: number;
+  merged?: { version: number; base: Env; env: Env };
+}
+const STATE = Symbol.for('app.savedKeys');
+function keyState(): KeyState {
+  const g = globalThis as { [STATE]?: KeyState };
+  return (g[STATE] ??= { saved: {}, version: 0, loadedAt: 0 });
+}
+
+function parseEnv(source: Record<string, string | undefined>): Env {
   const parsed = EnvSchema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
     throw new Error(`Invalid environment configuration: ${issues}`);
   }
-  if (source === process.env) cached = parsed.data;
   return parsed.data;
+}
+
+/**
+ * The process environment plus keys saved in Settings. A key set in the environment always
+ * wins. Passing another source (tests) parses just that source, without saved keys.
+ */
+export function getEnv(source: Record<string, string | undefined> = process.env): Env {
+  if (source !== process.env) return parseEnv(source);
+  cached ??= parseEnv(source);
+  const state = keyState();
+  if (state.merged?.version !== state.version || state.merged.base !== cached) {
+    state.merged = {
+      version: state.version,
+      base: cached,
+      env: applySavedKeys(cached, state.saved),
+    };
+  }
+  return state.merged.env;
+}
+
+/** The environment alone, without keys saved in Settings. */
+export function getBaseEnv(): Env {
+  return (cached ??= parseEnv(process.env));
+}
+
+/** Fills keys the environment leaves empty with the saved ones. */
+export function applySavedKeys(base: Env, saved: SavedKeys): Env {
+  const env: Env = { ...base };
+  for (const name of UI_KEY_NAMES) {
+    const value = saved[name]?.trim();
+    if (value && !base[name]) env[name] = value;
+  }
+  // AI_MOCK means "sample captions until there is a Claude key": a key saved in Settings
+  // switches real captions on (a key in .env keeps the old meaning, so developers can still mock).
+  if (!base.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY) env.AI_MOCK = false;
+  return env;
+}
+
+/** Replaces the saved keys this process uses (called by core/keys after reading the database). */
+export function setSavedKeys(saved: SavedKeys, loadedAt = Date.now()): void {
+  const state = keyState();
+  const clean: SavedKeys = {};
+  for (const name of UI_KEY_NAMES) {
+    const v = saved[name]?.trim();
+    if (v) clean[name] = v;
+  }
+  state.saved = clean;
+  state.version += 1;
+  state.loadedAt = loadedAt;
+}
+
+export function savedKeysLoadedAt(): number {
+  return keyState().loadedAt;
+}
+
+export function getSavedKeys(): SavedKeys {
+  return { ...keyState().saved };
 }
 
 /** For tests. */
 export function resetEnvCache(): void {
   cached = undefined;
+  const state = keyState();
+  state.saved = {};
+  state.version += 1;
+  state.loadedAt = 0;
+  state.merged = undefined;
 }
 
 export function requireEnv<K extends keyof Env>(key: K, hint?: string): NonNullable<Env[K]> {
@@ -143,7 +240,7 @@ export class ConfigError extends Error {
     public readonly key: string,
     hint?: string,
   ) {
-    super(`${key} is not set${hint ? ` (${hint})` : ''}. Add it to your .env file.`);
+    super(`${key} is not set${hint ? ` (${hint})` : ''}. Add it in Settings or in .env.`);
     this.name = 'ConfigError';
   }
 }

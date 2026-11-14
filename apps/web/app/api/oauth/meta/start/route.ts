@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   if (!metaOAuthConfigured(deps.env)) {
     return settingsWithError(
       deps.env.APP_URL,
-      'Facebook is not configured yet: set META_APP_ID and META_APP_SECRET on the server.',
+      'Facebook is not set up yet. Paste the Meta app keys under Settings → Setup first.',
     );
   }
   try {

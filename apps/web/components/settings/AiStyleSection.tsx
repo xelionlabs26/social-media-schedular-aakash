@@ -18,7 +18,6 @@ import {
   CAPTION_SCRIPT_LABEL,
   EMOJI_LEVELS,
   HASHTAG_MAX,
-  STT_ENV_KEY,
   STT_LABEL,
   firstIssue,
   type AiStyleInput,
@@ -80,11 +79,25 @@ export function AiStyleSection({
           <p className="text-xl font-semibold tabular-nums">${costUsd.toFixed(2)}</p>
         </div>
         <p className="text-xs text-muted">
-          {ai.mock
-            ? 'AI is in mock mode (AI_MOCK=true): no real calls.'
-            : ai.configured
-              ? 'Claude API key configured ✓'
-              : `✗ Add ${ai.missingKeys.join(', ')} to .env to write captions.`}
+          {ai.mock ? (
+            <>
+              Sample captions for now. Paste your Claude key under{' '}
+              <a href="#setup" className="underline">
+                Setup
+              </a>{' '}
+              for real ones.
+            </>
+          ) : ai.configured ? (
+            'Claude key added ✓'
+          ) : (
+            <>
+              ✗ Paste your Claude key under{' '}
+              <a href="#setup" className="underline">
+                Setup
+              </a>{' '}
+              to write captions.
+            </>
+          )}
         </p>
       </div>
 
@@ -265,9 +278,7 @@ export function AiStyleSection({
                   {ok ? (
                     <span className="text-xs text-ok">✓ configured</span>
                   ) : (
-                    <span className="text-xs text-muted">
-                      ✗ add {STT_ENV_KEY[p as Exclude<SttProvider, 'mock'>]}
-                    </span>
+                    <span className="text-xs text-muted">✗ add its key under Setup</span>
                   )}
                 </span>
               </label>

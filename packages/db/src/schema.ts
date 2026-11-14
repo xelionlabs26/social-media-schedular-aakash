@@ -623,6 +623,17 @@ export const loginAttempts = pgTable(
   (t) => [index('login_attempts_ip_at').on(t.ip, t.at)],
 );
 
+/**
+ * Keys the owner pastes in Settings (Google/Meta app keys, Claude, speech-to-text, Telegram),
+ * so nothing has to be typed into .env. Values are AES-GCM encrypted with TOKEN_ENC_KEY.
+ * A value set in the server environment always wins over the one saved here.
+ */
+export const appKeys = pgTable('app_keys', {
+  name: text('name').primaryKey(),
+  valueEnc: text('value_enc').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------------------------
 // Row types
 // ---------------------------------------------------------------------------------------------

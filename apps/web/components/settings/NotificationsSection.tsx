@@ -97,8 +97,11 @@ export function NotificationsSection({
         <div className="mt-3 rounded-lg border border-border p-3">
           {!telegram.configured ? (
             <p className="mb-2 text-xs text-muted">
-              Create a bot with @BotFather, then add <EnvKeys keys={telegram.missingKeys} /> to your{' '}
-              <code>.env</code> file.
+              Paste your Telegram bot token under{' '}
+              <a href="#setup" className="underline">
+                Setup
+              </a>{' '}
+              first (it shows how to get one).
             </p>
           ) : null}
           <Label htmlFor="tg-chat" hint="A number, found automatically">

@@ -24,10 +24,29 @@ See [PLAN.md](./PLAN.md) for the full design, the platform rules and the roadmap
    password: `pnpm hash-password 'your password'` and replace `OWNER_PASSWORD_HASH` in `.env`.
 
 The app's address looks like `https://<codespace-name>-3000.app.github.dev` and only you
-(signed in to GitHub) can open it.
+(signed in to GitHub) can open it. Codespaces use your GitHub account's free monthly hours; there
+is no separate account to create.
 
-Codespaces stop when idle, so they're for trying the app, not for running a schedule. Scheduled
-Instagram posts need an always-on server (PLAN.md §6: Railway, ~$10–15/month).
+**Connect your accounts (all in the app, nothing to type into files):**
+
+1. Open **Settings → Setup**. Each part has short steps, links and Copy buttons for the
+   addresses Google and Meta ask for:
+   - **YouTube (Google app):** paste the Client ID and Client secret.
+   - **Facebook & Instagram (Meta app):** paste the App ID, App secret and Configuration ID.
+   - **Captions (Claude)** and **Speech to text (Deepgram):** paste one key each.
+2. Under **Connected accounts**, click **Connect YouTube** and **Connect Facebook & Instagram**,
+   sign in on Google's or Facebook's own page and click Allow. Reconnect or Disconnect there any
+   time.
+
+Keys are stored encrypted in the app's database and take effect at once (no restart). They stay
+with this codespace: a **new** codespace has a new address, so paste the keys again and update
+the redirect address in Google and Meta (the Setup steps show the new one).
+
+**What runs while the codespace sleeps:** a codespace stops after about 30 minutes without use
+(raise it to 4 hours in GitHub → Settings → Codespaces). YouTube and Facebook posts are handed to
+the platform when you click Schedule, so they still go out on time. **Instagram** has no
+scheduler of its own, so the app must be running at the post time: open the codespace before
+then, or use an always-on server (PLAN.md §6: Railway, ~$10–15/month).
 
 ### Option B: your computer
 
@@ -75,5 +94,7 @@ packages/core   Business logic: storage, platform clients, AI, scheduling, text 
 ## Security notes
 
 - Single owner login (email + scrypt password hash from env), signed session cookie, login rate limit.
-- Platform tokens are encrypted at rest with AES-256-GCM (`TOKEN_ENC_KEY`).
+- Platform tokens, and keys pasted under Settings → Setup, are encrypted at rest with
+  AES-256-GCM (`TOKEN_ENC_KEY`). Saved secrets are never sent back to the browser (only their
+  last 4 characters).
 - Never commit `.env`; in production put secrets in your host's environment variables.

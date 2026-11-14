@@ -9,6 +9,7 @@ import { getEnv } from '@app/core';
 import { defaultDeps } from '@app/core/deps';
 import { CRONS, QUEUES, QUEUE_OPTIONS, type QueueName } from '@app/core/jobs';
 import { createLogger } from '@app/core/log';
+import { refreshSavedKeys } from '@app/core/keys';
 import { getSettings } from '@app/core/settings';
 import { createEngine } from '@app/core/scheduling';
 import { createIntegrations } from './integrations';
@@ -16,6 +17,9 @@ import { createHandlers, type JobMeta } from './handlers';
 import { WorkerJobs } from './jobs';
 
 const log = createLogger('worker');
+
+/** How stale keys saved in Settings may be when a job starts. */
+const KEYS_MAX_AGE_MS = 5_000;
 
 /** Local concurrency per queue (ffmpeg is CPU/RAM heavy: one at a time). */
 const CONCURRENCY: Partial<Record<QueueName, number>> = {
@@ -39,6 +43,8 @@ async function main() {
 
   const jobs = new WorkerJobs(boss, log);
   const deps = defaultDeps({ db: getDb(env.DATABASE_URL), log, jobs: jobs.sender });
+  // Keys pasted in Settings: loaded now and re-read before jobs (at most every few seconds).
+  await refreshSavedKeys(deps.db, { log });
   const settings = await getSettings(deps.db);
 
   // Queues (idempotent).
@@ -90,6 +96,7 @@ async function main() {
             sourceName: job.sourceName,
           };
           try {
+            await refreshSavedKeys(deps.db, { maxAgeMs: KEYS_MAX_AGE_MS, log });
             await jobs.run(job, () => handler(job.data, meta));
             log.debug('job done', { queue: name, id: job.id, ms: Date.now() - started });
           } catch (err) {

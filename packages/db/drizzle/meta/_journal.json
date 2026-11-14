@@ -29,6 +29,13 @@
       "when": 1794576806188,
       "tag": "0003_default_stt_deepgram",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794651164630,
+      "tag": "0004_app_keys",
+      "breakpoints": true
     }
   ]
 }

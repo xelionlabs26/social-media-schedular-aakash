@@ -8,6 +8,7 @@ import { and, count, eq, gt } from 'drizzle-orm';
 import { loginAttempts } from '@app/db';
 import { getSettings } from '@app/core/settings';
 import { verifyPassword } from '@app/core/crypto';
+import { refreshSavedKeys } from '@app/core/keys';
 import { getDeps } from './deps';
 import {
   SESSION_COOKIE,
@@ -28,9 +29,16 @@ export async function isOwner(): Promise<boolean> {
   const jar = await cookies();
   const session = await readSessionToken(jar.get(SESSION_COOKIE)?.value);
   if (!session) return false;
-  const settings = await getSettings(getDeps().db);
-  return session.sv === settings.sessionVersion;
+  const { db, log } = getDeps();
+  const settings = await getSettings(db);
+  if (session.sv !== settings.sessionVersion) return false;
+  // Every signed-in page, action and route passes here: pick up keys saved in Settings
+  // (a cheap query, at most every few seconds).
+  await refreshSavedKeys(db, { maxAgeMs: KEYS_MAX_AGE_MS, log });
+  return true;
 }
+
+const KEYS_MAX_AGE_MS = 3_000;
 
 /** For pages: redirects to /login when not signed in. */
 export async function requireOwnerPage(): Promise<void> {

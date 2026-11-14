@@ -330,7 +330,7 @@ d('ai (database)', () => {
     expect(res.ok).toBe(false);
     const t = await target(targets[0]!.id);
     expect(t.attentionReason).toBe('ai_failed');
-    expect(t.lastError).toBe('Add ANTHROPIC_API_KEY or set AI_MOCK=true.');
+    expect(t.lastError).toBe('Add your Claude API key in Settings (or set AI_MOCK=true).');
     expect((await assetRow(asset.id)).status).toBe('ready');
   });
 

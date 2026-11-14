@@ -46,12 +46,17 @@ const clients = new Map<string, ClaudeClient>();
  * maxRetries=1: pg-boss already retries the job with backoff, and the SDK would otherwise also
  * retry spend-cap 429s that can never succeed.
  */
-export function getDefaultClaudeClient(apiKey: string | undefined): ClaudeClient {
-  if (!apiKey) throw new AiError('config', 'Add ANTHROPIC_API_KEY or set AI_MOCK=true.');
-  let client = clients.get(apiKey);
+export function getDefaultClaudeClient(
+  apiKey: string | undefined,
+  workspaceIdOpt?: string,
+): ClaudeClient {
+  if (!apiKey)
+    throw new AiError('config', 'Add your Claude API key in Settings (or set AI_MOCK=true).');
+  // Keys not scoped to a workspace must name one on every request.
+  const workspaceId = workspaceIdOpt?.trim() || undefined;
+  const cacheKey = `${apiKey}|${workspaceId ?? ''}`;
+  let client = clients.get(cacheKey);
   if (!client) {
-    // Keys not scoped to a workspace must name one on every request.
-    const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
     const anthropic = new Anthropic({
       apiKey,
       maxRetries: 1,
@@ -64,7 +69,7 @@ export function getDefaultClaudeClient(apiKey: string | undefined): ClaudeClient
         return { message, requestId: stream.request_id ?? null };
       },
     };
-    clients.set(apiKey, client);
+    clients.set(cacheKey, client);
   }
   return client;
 }

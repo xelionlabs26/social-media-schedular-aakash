@@ -1,6 +1,6 @@
 /**
  * Server-side loader for the Settings page. Returns only what the forms need: no tokens, no
- * secret values (for missing integrations we list the .env key NAMES to add).
+ * secret values (saved secrets are shown as their last 4 characters only).
  */
 import { asc, gte, sum } from 'drizzle-orm';
 import {
@@ -13,8 +13,11 @@ import {
 } from '@app/db';
 import { listAccounts } from '@app/core/accounts';
 import type { ServiceDeps } from '@app/core/deps';
-import { integrationStatus, type Env } from '@app/core/env';
+import { integrationStatus, type Env, type UiKeyName } from '@app/core/env';
+import { describeKeys, type KeyStatus } from '@app/core/keys';
+import { metaRedirectUri } from '@app/core/meta';
 import { getSettings } from '@app/core/settings';
+import { googleRedirectUri } from '@app/core/youtube';
 import { localToUtc, toLocalParts, tzAbbrev } from '@app/core/time';
 import { TEMPLATE_SLOTS, type SlotRow, type TemplateInput } from './schemas';
 
@@ -72,6 +75,19 @@ export interface SettingsData {
     email: IntegrationView;
     ai: IntegrationView & { mock: boolean };
     stt: Record<'openai' | 'deepgram' | 'sarvam' | 'assemblyai', boolean>;
+  };
+  setup: {
+    keys: Record<UiKeyName, KeyStatus>;
+    urls: {
+      app: string;
+      googleRedirect: string;
+      metaRedirect: string;
+      privacy: string;
+      terms: string;
+      dataDeletion: string;
+    };
+    /** False when TOKEN_ENC_KEY is missing: keys can't be stored safely. */
+    canSave: boolean;
   };
   slots: SlotRow[];
   templates: TemplateInput[];
@@ -207,6 +223,18 @@ export async function loadSettingsData(deps: ServiceDeps): Promise<SettingsData>
         missingKeys: missing(env, ['ANTHROPIC_API_KEY']),
       },
       stt: status.stt,
+    },
+    setup: {
+      keys: describeKeys(),
+      urls: {
+        app: env.APP_URL,
+        googleRedirect: googleRedirectUri(env),
+        metaRedirect: metaRedirectUri(env),
+        privacy: `${env.APP_URL}/privacy`,
+        terms: `${env.APP_URL}/terms`,
+        dataDeletion: `${env.APP_URL}/data-deletion`,
+      },
+      canSave: Boolean(env.TOKEN_ENC_KEY),
     },
     slots,
     templates: tpl,

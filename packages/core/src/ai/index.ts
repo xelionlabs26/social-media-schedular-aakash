@@ -231,7 +231,8 @@ async function buildCallContext(
   // Resolve the client before loading frames so a missing key fails fast with a config error.
   const client = mock
     ? undefined
-    : (opts.client ?? getDefaultClaudeClient(deps.env.ANTHROPIC_API_KEY));
+    : (opts.client ??
+      getDefaultClaudeClient(deps.env.ANTHROPIC_API_KEY, deps.env.ANTHROPIC_WORKSPACE_ID));
   return {
     deps,
     settings,
